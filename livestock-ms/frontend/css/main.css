@@ -7,7 +7,7 @@
 /* logo panel */
 .logo-panel {
   border: 1px solid #e0e0e0;
-  padding: 10px;
+  padding: 25px;
   padding-left: 20px;
 }
 
@@ -58,4 +58,59 @@
   font-size: small;
   font-weight: lighter;
   color: #9aa0a6;
+}
+
+.content-title {
+  display: flex;
+  justify-content: space-between; /* pushes left & right apart */
+  align-items: center; /* vertical center */
+  width: 100%;
+  padding: 10px 20px;
+  height: 55px;
+  padding: 10px;
+  border: 1px solid #e0e0e0;
+}
+
+.des-pfp {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 70px;
+    padding-right: 40px;
+}
+
+.panel-name {
+    font-size: 30px;
+    font-weight: bold;
+    color:#9aa0a6;
+  
+}
+
+.designation-icon {
+  border: none;
+  background-color: #2d6a4f;
+  color: white;
+  padding: 5px;
+  padding-left: +15px;
+  padding-right: +15px;
+  border-radius: 25px;
+}
+
+.full-screen {
+  display: flex;
+}
+
+.pfp-2 {
+  flex: 1;
+  background-color: #2d6a4f;
+  width: 30px;
+  height: 30px;
+  text-align: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
 }
