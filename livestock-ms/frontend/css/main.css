@@ -1,0 +1,61 @@
+* {
+  font-family: "Arvo", serif;
+  margin: 0px;
+  padding: 0px;
+}
+
+/* logo panel */
+.logo-panel {
+  border: 1px solid #e0e0e0;
+  padding: 10px;
+  padding-left: 20px;
+}
+
+.logo {
+  font-size: 23px;
+  font-weight: bold;
+  color: #2d6a4f;
+}
+
+.panel-description {
+  font-size: small;
+  font-weight: lighter;
+  color: #9aa0a6;
+}
+
+/*basic profile*/
+.basic-profile {
+  border: 1px solid #e0e0e0;
+  padding: 10px;
+  padding-left: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+
+.pfp {
+  background-color: #2d6a4f;
+  width: 40px;
+  height: 40px;
+  text-align: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+}
+
+.username {
+  font-weight: bold;
+  padding: 3px;
+}
+
+.designation {
+  font-size: small;
+  font-weight: lighter;
+  color: #9aa0a6;
+}

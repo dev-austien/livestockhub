@@ -1,0 +1,42 @@
+.left-wing {
+  background-color: #f6fdfb;
+  max-width: 250px;
+}
+
+.side-link {
+  background-color: #2d6a4f;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 200px;
+  margin: 10px;
+  padding: 10px;
+  text-decoration: none;
+  border-radius: 25px;
+  border: none;
+  text-align: center;
+}
+
+.side-bar ul {
+  list-style: none; /* This removes the dots */
+  padding: 0; /* This removes the default left-indentation */
+  margin: 0;
+  border: 1px solid #e0e0e0;
+  height: 700px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-size: 18px;
+  
+}
+
+.side-link:hover {
+  transform: translateY(-5px) scale(1.03);
+  box-shadow:
+    8px 8px 16px #c5c5c5,
+    -8px -8px 16px #ffffff;
+  background-color: #40916c; /* slightly lighter green */
+  transition: transform 0.25s ease-out;
+}
