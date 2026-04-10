@@ -1,60 +1,49 @@
 <?php
-// 1. Enable Error Reporting (Remove this once everything works)
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
+ob_start(); // Buffer output to prevent "Headers already sent" errors
+require_once 'db_config.php';
 
-// 2. Database Connection
-require_once 'db_config.php'; 
-
-// 3. Check if the form was actually submitted
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    
-    $username = $_POST['username'] ?? '';
-    $password = $_POST['password'] ?? '';
-
-    if (empty($username) || empty($password)) {
-        die("Please fill in both fields.");
-    }
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login'])) {
+    $username = trim($_POST['username']);
+    $password = trim($_POST['password']);
 
     try {
-        // Search for the user using the exact column name from your ERD
         $stmt = $conn->prepare("SELECT * FROM user WHERE username = :uname LIMIT 1");
         $stmt->execute([':uname' => $username]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if ($user) {
-            // Check the password against the hash in the DB
-            if (password_verify($password, $user['password_hash'])) {
-                
-                // Set session variables
-                $_SESSION['user_id'] = $user['user_id'];
-                $_SESSION['role'] = $user['user_role'];
-                $_SESSION['username'] = $user['username'];
+        if ($user && password_verify($password, $user['password_hash'])) {
+            // Set Sessions
+            $_SESSION['user_id'] = $user['user_id'];
+            $_SESSION['role'] = $user['user_role'];
+            $_SESSION['username'] = $user['username'];
 
-                // Redirect logic based on your folder structure
-                $role = $user['user_role'];
-                if ($role === 'admin') {
-                    header("Location: ../frontend/pages/admin/dashboard.php");
-                } elseif ($role === 'farmer') {
-                    header("Location: ../frontend/pages/farmer/dashboard.php");
-                } elseif ($role === 'buyer') {
-                    header("Location: ../frontend/pages/buyer/dashboard.php");
-                } else {
-                    die("Unknown user role: " . htmlspecialchars($role));
-                }
-                exit();
+            // Determine redirect path
+            $role = $user['user_role'];
+            $path = "";
 
-            } else {
-                echo "<script>alert('Incorrect password.'); window.history.back();</script>";
+            if ($role === 'admin') {
+                $path = "../frontend/pages/admin/dashboard.php";
+            } elseif ($role === 'farmer') {
+                $path = "../frontend/pages/farmer/dashboard.php";
+            } elseif ($role === 'buyer') {
+                $path = "../frontend/pages/buyer/dashboard.php";
             }
+
+            if ($path !== "") {
+                // Try PHP Redirect first
+                header("Location: " . $path);
+                // Backup JavaScript Redirect if header is blocked
+                echo "<script>window.location.href='$path';</script>";
+                exit();
+            }
+
         } else {
-            echo "<script>alert('User not found.'); window.history.back();</script>";
+            echo "<script>alert('Invalid username or password'); window.history.back();</script>";
         }
     } catch (PDOException $e) {
-        die("Database Error: " . $e->getMessage());
+        die("System Error: " . $e->getMessage());
     }
 } else {
-    // If someone tries to access this file directly via URL
     header("Location: ../frontend/pages/auth/login.php");
-    exit();
 }
+ob_end_flush();
