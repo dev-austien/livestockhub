@@ -13,7 +13,7 @@
 
     <div class="login-card">
         <h2>AgriStock MS</h2>
-        <form action="../../../backend/auth.php" method="POST">
+        <form action="../../../backend/login_process.php" method="POST">
             <label for="username">Username</label>
             <input type="text" id="username" name="username" required>
             

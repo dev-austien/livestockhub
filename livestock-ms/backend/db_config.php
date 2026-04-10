@@ -1,14 +1,17 @@
 <?php
 $host = "localhost";
-$dbname = "livestock_db"; // Make sure to create this name in phpMyAdmin
-$username = "root";       // Default XAMPP username
-$password = "";           // Default XAMPP password is empty
+$dbname = "livestock_db";
+$username = "root";
+$password = "";
 
 try {
     $conn = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
-    // Set error mode to exception to see mistakes clearly
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    // Start session globally here so we don't have to call it on every page
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
 } catch(PDOException $e) {
-    echo "Connection failed: " . $e->getMessage();
+    die("Connection failed: " . $e->getMessage());
 }
 ?>
