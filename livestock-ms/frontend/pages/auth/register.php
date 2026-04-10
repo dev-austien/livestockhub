@@ -16,34 +16,35 @@
             <div style="display: flex; gap: 10px;">
                 <div style="flex: 1;">
                     <label for="first_name">First Name</label>
-                    <input type="text" id="first_name" name="first_name" required>
+                    <input type="text" id="first_name" name="first_name" required placeholder="Juan">
                 </div>
                 <div style="flex: 1;">
                     <label for="last_name">Last Name</label>
-                    <input type="text" id="last_name" name="last_name" required>
+                    <input type="text" id="last_name" name="last_name" required placeholder="Dela Cruz">
                 </div>
             </div>
 
             <label for="username">Username</label>
-            <input type="text" id="username" name="username" required>
+            <input type="text" id="username" name="username" required placeholder="Unique username">
             
             <label for="email">Email Address</label>
-            <input type="email" id="email" name="email" required>
+            <input type="email" id="email" name="email" required placeholder="email@example.com">
 
             <label for="phone">Phone Number</label>
-            <input type="number" id="phone" name="phone">
+            <input type="number" id="phone" name="phone" placeholder="09123456789">
 
-            <label for="role">Register as:</label>
-            <select id="role" name="role" class="auth-select" style="width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px;">
-                <option value="buyer">Buyer / Consumer</option>
-                <option value="farmer">Livestock Farmer</option>
+            <label for="role">I am a:</label>
+            <select id="role" name="role" class="auth-select" style="width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; background: white;">
+                <option value="farmer">Farmer (Seller)</option>
+                <option value="buyer">Buyer (Consumer)</option>
+                <option value="admin">System Administrator</option>
             </select>
             
             <label for="password">Password</label>
-            <input type="password" id="password" name="password" required>
+            <input type="password" id="password" name="password" required placeholder="••••••••">
 
             <label for="confirm_password">Confirm Password</label>
-            <input type="password" id="confirm_password" name="confirm_password" required>
+            <input type="password" id="confirm_password" name="confirm_password" required placeholder="••••••••">
             
             <button type="submit" name="register">Create Account</button>
         </form>
