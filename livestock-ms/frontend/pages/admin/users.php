@@ -54,6 +54,15 @@
         </nav>
 
 
+        <div class="basic-profile">
+          <div class="pfp">AJ</div>
+          <div>
+            <div class="username">Austien James</div>
+            <div class="designation">Admin</div>
+          </div>
+        </div>
+      </div>
+
       <div class="content-title">
       <div class="panel-name">All Users</div>
       <div class="des-pfp">
