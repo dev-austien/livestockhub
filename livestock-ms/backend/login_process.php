@@ -1,49 +1,50 @@
 <?php
-ob_start(); // Buffer output to prevent "Headers already sent" errors
-require_once 'db_config.php';
+// 1. Debugging - Show all errors
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login'])) {
-    $username = trim($_POST['username']);
-    $password = trim($_POST['password']);
+// 2. Database Connection
+require_once 'db_config.php'; 
+
+if (isset($_POST['login'])) {
+    $username = $_POST['username'];
+    $password = $_POST['password'];
 
     try {
-        $stmt = $conn->prepare("SELECT * FROM user WHERE username = :uname LIMIT 1");
+        $stmt = $conn->prepare("SELECT * FROM user WHERE username = :uname");
         $stmt->execute([':uname' => $username]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if ($user && password_verify($password, $user['password_hash'])) {
-            // Set Sessions
-            $_SESSION['user_id'] = $user['user_id'];
-            $_SESSION['role'] = $user['user_role'];
-            $_SESSION['username'] = $user['username'];
+        if ($user) {
+            // Verify Password
+            if (password_verify($password, $user['password_hash'])) {
+                
+                $_SESSION['user_id'] = $user['user_id'];
+                $_SESSION['role'] = $user['user_role'];
 
-            // Determine redirect path
-            $role = $user['user_role'];
-            $path = "";
-
-            if ($role === 'admin') {
-                $path = "../frontend/pages/admin/dashboard.php";
-            } elseif ($role === 'farmer') {
-                $path = "../frontend/pages/farmer/dashboard.php";
-            } elseif ($role === 'buyer') {
-                $path = "../frontend/pages/buyer/dashboard.php";
-            }
-
-            if ($path !== "") {
-                // Try PHP Redirect first
-                header("Location: " . $path);
-                // Backup JavaScript Redirect if header is blocked
-                echo "<script>window.location.href='$path';</script>";
+                // Redirect paths based on your structure
+                $role = $user['user_role'];
+                if ($role === 'admin') {
+                    header("Location: ../frontend/pages/admin/dashboard.php");
+                } elseif ($role === 'farmer') {
+                    header("Location: ../frontend/pages/farmer/dashboard.php");
+                } elseif ($role === 'buyer') {
+                    header("Location: ../frontend/pages/buyer/dashboard.php");
+                } else {
+                    echo "Role not recognized: " . $role;
+                }
                 exit();
-            }
 
+            } else {
+                echo "Invalid password.";
+            }
         } else {
-            echo "<script>alert('Invalid username or password'); window.history.back();</script>";
+            echo "User not found.";
         }
     } catch (PDOException $e) {
-        die("System Error: " . $e->getMessage());
+        echo "Database Error: " . $e->getMessage();
     }
 } else {
-    header("Location: ../frontend/pages/auth/login.php");
+    echo "Form not submitted correctly. Make sure your button has name='login'";
 }
-ob_end_flush();
+?>
