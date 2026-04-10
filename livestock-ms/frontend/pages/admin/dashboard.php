@@ -1,3 +1,13 @@
+<?php
+require_once '../../../backend/db_config.php';
+
+// If not logged in OR role is not admin, kick them out
+if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
+    header("Location: ../auth/login.php");
+    exit();
+}
+?>
+
 <!doctype html>
 <html lang="en">
   <head>

@@ -16,12 +16,13 @@
         <form action="../../../backend/login_process.php" method="POST">
             <label for="username">Username</label>
             <input type="text" id="username" name="username" required>
-            
+    
             <label for="password">Password</label>
             <input type="password" id="password" name="password" required>
-            
-            <button type="submit">Login</button>
+    
+            <button type="submit" name="login">Login</button>
         </form>
+        
         <p style="font-size: 12px; text-align: center; margin-top: 15px;">
             Don't have an account? <a href="register.php">Register here</a>
         </p>
