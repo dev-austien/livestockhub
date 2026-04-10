@@ -27,40 +27,32 @@
         <nav class="side-bar">
           <ul>
             <li>
-              <a href="dashboard.html" class="side-link">Dashboard</a>
+              <a href="dashboard.php" class="side-link">Dashboard</a>
             </li>
             <li>
-              <a href="users.html" class="side-link">All Users</a>
+              <a href="users.php" class="side-link">All Users</a>
             </li>
             <li>
-              <a href="livestock.html" class="side-link">All Livestock</a>
+              <a href="livestock.php" class="side-link">All Livestock</a>
             </li>
             <li>
-              <a href="categories.html" class="side-link">Categories</a>
+              <a href="categories.php" class="side-link">Categories</a>
             </li>
             <li>
-              <a href="breeds.html" class="side-link">Breeds</a>
+              <a href="breeds.php" class="side-link">Breeds</a>
             </li>
             <li>
-              <a href="orders.html" class="side-link">Orders</a>
+              <a href="orders.php" class="side-link">Orders</a>
             </li>
             <li>
-              <a href="transaction.html" class="side-link">Transactions</a>
+              <a href="transaction.php" class="side-link">Transactions</a>
             </li>
             <li>
-              <a href="report.html" class="side-link">Reports</a>
+              <a href="report.php" class="side-link">Reports</a>
             </li>
           </ul>
         </nav>
 
-        <div class="basic-profile">
-          <div class="pfp">AJ</div>
-          <div>
-            <div class="username">Austien James</div>
-            <div class="designation">Admin</div>
-          </div>
-        </div>
-      </div>
 
       <div class="content-title">
       <div class="panel-name">All Users</div>
@@ -76,3 +68,5 @@
     
   </body>
 </html>
+
+
