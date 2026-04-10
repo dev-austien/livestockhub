@@ -7,7 +7,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - AgriStock MS</title>
-    <link rel="stylesheet" href="/livestock-ms/frontend/css/auth.css"> 
+    <link rel="stylesheet" href="../css/auth.css"> 
 </head>
 <body>
 
