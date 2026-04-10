@@ -1,29 +1,37 @@
 <?php
-die("PHP is reaching this file!");
-// 1. Debugging - Show all errors
+// 1. Enable Error Reporting (Remove this once everything works)
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
 // 2. Database Connection
 require_once 'db_config.php'; 
 
-if (isset($_POST['login'])) {
-    $username = $_POST['username'];
-    $password = $_POST['password'];
+// 3. Check if the form was actually submitted
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    
+    $username = $_POST['username'] ?? '';
+    $password = $_POST['password'] ?? '';
+
+    if (empty($username) || empty($password)) {
+        die("Please fill in both fields.");
+    }
 
     try {
-        $stmt = $conn->prepare("SELECT * FROM user WHERE username = :uname");
+        // Search for the user using the exact column name from your ERD
+        $stmt = $conn->prepare("SELECT * FROM user WHERE username = :uname LIMIT 1");
         $stmt->execute([':uname' => $username]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($user) {
-            // Verify Password
+            // Check the password against the hash in the DB
             if (password_verify($password, $user['password_hash'])) {
                 
+                // Set session variables
                 $_SESSION['user_id'] = $user['user_id'];
                 $_SESSION['role'] = $user['user_role'];
+                $_SESSION['username'] = $user['username'];
 
-                // Redirect paths based on your structure
+                // Redirect logic based on your folder structure
                 $role = $user['user_role'];
                 if ($role === 'admin') {
                     header("Location: ../frontend/pages/admin/dashboard.php");
@@ -32,20 +40,21 @@ if (isset($_POST['login'])) {
                 } elseif ($role === 'buyer') {
                     header("Location: ../frontend/pages/buyer/dashboard.php");
                 } else {
-                    echo "Role not recognized: " . $role;
+                    die("Unknown user role: " . htmlspecialchars($role));
                 }
                 exit();
 
             } else {
-                echo "Invalid password.";
+                echo "<script>alert('Incorrect password.'); window.history.back();</script>";
             }
         } else {
-            echo "User not found.";
+            echo "<script>alert('User not found.'); window.history.back();</script>";
         }
     } catch (PDOException $e) {
-        echo "Database Error: " . $e->getMessage();
+        die("Database Error: " . $e->getMessage());
     }
 } else {
-    echo "Form not submitted correctly. Make sure your button has name='login'";
+    // If someone tries to access this file directly via URL
+    header("Location: ../frontend/pages/auth/login.php");
+    exit();
 }
-?>
