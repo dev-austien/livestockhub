@@ -27,21 +27,20 @@
         <nav class="side-bar">
           <ul>
             <li>
-              <a href="dashboard\.php"" class="side-link">Dashboard</a>
+              <a href="dashboard.php" class="side-link">Dashboard</a>
             </li>
             <li>
-              <a href="marketplace\.php"" class="side-link">Marletplace</a>
+              <a href="marketplace.php" class="side-link">Marletplace</a>
             </li>
             <li>
-              <a href="myorders\.php"" class="side-link">My Orders</a>
+              <a href="myorders.php" class="side-link">My Orders</a>
             </li>
             <li>
-              <a href="paymenthistory\.php"" class="side-link">Payment History</a>
+              <a href="paymenthistory.php" class="side-link">Payment History</a>
             </li>
             <li>
-              <a href="myprofile\.php"" class="side-link">My Profile</a>
+              <a href="myprofile.php" class="side-link">My Profile</a>
             </li>
-            
           </ul>
         </nav>
 

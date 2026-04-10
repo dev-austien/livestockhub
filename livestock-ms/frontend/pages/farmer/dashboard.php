@@ -37,25 +37,25 @@ if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
         <nav class="side-bar">
           <ul>
             <li>
-              <a href="dashboard\.php"" class="side-link">Dashboard</a>
+              <a href="dashboard.php" class="side-link">Dashboard</a>
             </li>
             <li>
-              <a href="mylivestock\.php"" class="side-link">My Livestock</a>
+              <a href="mylivestock.php" class="side-link">My Livestock</a>
             </li>
             <li>
-              <a href="addAnimals\.php"" class="side-link">Add Animals</a>
+              <a href="addAnimals.php" class="side-link">Add Animals</a>
             </li>
             <li>
-              <a href="weightLog\.php"" class="side-link">Weight Log</a>
+              <a href="weightLog.php" class="side-link">Weight Log</a>
             </li>
             <li>
-              <a href="myFarm\.php"" class="side-link">My Farm</a>
+              <a href="myFarm.php" class="side-link">My Farm</a>
             </li>
             <li>
-              <a href="orderRecieved\.php"" class="side-link">Order Received</a>
+              <a href="orderRecieved.php" class="side-link">Order Received</a>
             </li>
             <li>
-              <a href="transaction\.php"" class="side-link">Transactions</a>
+              <a href="transaction.php" class="side-link">Transactions</a>
             </li>
           </ul>
         </nav>
