@@ -1,82 +1,238 @@
-/* admin_dashboard.css */
-.main-body {
-    flex: 1;
-    padding: 20px;
-    background-color: #f4f7f6;
-    overflow-y: auto;
+/* =========================================================
+   admin_dashboard.css - Specific Styling for Dashboard Page
+   ========================================================= */
+
+/* Use a modern font matching the image */
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #f7f9fc;
+    margin: 0;
 }
 
-.dashboard-grid {
+/* Layout for the whole page */
+.dashboard-wrapper {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* SIDEBAR FIXES (Assuming sidebar.css handles basic layout, these make it match image_0.png) */
+.sidebar {
+    width: 260px;
+    background: white;
+    border-right: 1px solid #eee;
+    padding: 20px;
+}
+
+.logo-text {
+    color: #2ecc71; /* Bright green from image */
+    font-weight: 700;
+    font-size: 1.6rem;
+    margin: 0;
+}
+
+.nav-links li a {
+    border-radius: 50px; /* Highly rounded links */
+    color: #444;
+}
+
+.nav-links li a.active {
+    background: #2ecc71; /* Solid green background */
+    color: white !important;
+}
+
+.nav-links li a.active i {
+    color: white;
+}
+
+.nav-links li a:hover:not(.active) {
+    background-color: #eafaf1;
+    color: #2ecc71;
+}
+
+/* MAIN CONTENT CONTAINER */
+.main-content {
+    flex: 1;
+    padding: 20px 30px;
+}
+
+/* TOP NAVBAR */
+.top-navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.page-title {
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+}
+
+.top-nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.role-badge {
+    padding: 6px 18px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+.farmer-btn {
+    background: #fff;
+    color: #aaa;
+    border: 1px solid #eee;
+}
+
+.admin-badge.active {
+    background: #2ecc71; /* Green from image */
+    color: white;
+}
+
+/* STATS GRID & CARDS */
+.stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
     gap: 20px;
-    margin-top: 20px;
+    margin-bottom: 30px;
 }
 
 .stat-card {
     background: white;
-    padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-    border-left: 5px solid #27ae60;
+    padding: 25px;
+    border-radius: 15px; /* Softer rounded corners */
+    border: 1px solid #f0f0f0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03); /* Soft modern shadow */
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    transition: 0.3s ease;
 }
 
-.stat-card .label {
-    font-size: 0.8rem;
-    color: #7f8c8d;
-    text-transform: uppercase;
+.stat-card:hover {
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
 }
 
-.stat-card .value {
-    font-size: 2rem;
-    margin: 10px 0 0 0;
+/* Highlighted Revenue Card */
+.stat-card.highlighted {
+    background: #2ecc71; /* The highlighted card is green */
+    border-color: #2ecc71;
+}
+
+/* Card Icons */
+.card-icon-wrapper {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%; /* Circle icons */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+/* Match the soft icon backgrounds from the image */
+.stat-card:not(.highlighted) .user-icon      { background-color: #eafaf1; color: #2ecc71; }
+.stat-card:not(.highlighted) .livestock-icon { background-color: #fef9e7; color: #f1c40f; }
+.stat-card:not(.highlighted) .orders-icon    { background-color: #eef2f5; color: #34495e; }
+
+/* In the highlighted card, the icon and text change color */
+.stat-card.highlighted .revenue-icon {
+    background-color: rgba(255,255,255,0.2);
+    color: white;
+}
+
+.card-data {
+    flex: 1;
+}
+
+.card-label {
+    font-size: 0.9rem;
+    color: #888;
+    margin: 0 0 5px 0;
+    font-weight: 500;
+}
+
+.stat-card.highlighted .card-label {
+    color: rgba(255,255,255,0.8);
+}
+
+.card-value {
+    font-size: 1.9rem;
+    font-weight: 700;
+    margin: 0 0 5px 0;
     color: #2c3e50;
 }
 
-.dashboard-middle {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 20px;
-    margin-top: 30px;
-}
-
-.chart-container, .actions-panel {
-    background: white;
-    padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-}
-
-.action-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.action-buttons button {
-    padding: 12px;
-    background: #27ae60;
+.stat-card.highlighted .card-value {
     color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: bold;
-    transition: 0.3s;
 }
 
-.action-buttons button:hover {
-    background: #219150;
+.card-subtext {
+    font-size: 0.8rem;
+    margin: 0;
+    font-weight: 500;
 }
 
-.alert-box {
-    padding: 10px;
-    border-radius: 6px;
-    font-size: 0.85rem;
-    margin-bottom: 10px;
-    border-left: 4px solid;
+.card-subtext.positive { color: #2ecc71; } /* Bright Green subtext */
+.card-subtext.neutral { color: #aaa; }
+
+.stat-card.highlighted .card-subtext.positive {
+    color: rgba(255,255,255,0.9);
 }
 
-.low-stock { background: #fff3e0; border-color: #ff9800; color: #e65100; }
-.overdue { background: #ffebee; border-color: #f44336; color: #c62828; }
+/* MAJOR PANELS GRID */
+.panels-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Two columns matching image */
+    gap: 25px;
+}
 
-.logout-btn { color: #e74c3c !important; font-weight: bold; }
+.panel {
+    background: white;
+    border-radius: 15px;
+    border: 1px solid #f0f0f0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    padding: 25px;
+    min-height: 400px; /* Minimum height matching the large empty boxes */
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.panel-header h4 {
+    margin: 0;
+    font-weight: 600;
+    color: #333;
+    font-size: 1.1rem;
+}
+
+.view-all {
+    font-size: 0.9rem;
+    color: #aaa;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.view-all:hover {
+    color: #2ecc71;
+}
+
+/* Empty Panel content area placeholder */
+.panel-content.empty-panel {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
