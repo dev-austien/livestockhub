@@ -80,7 +80,8 @@ require_once '../../../backend/db_config.php';
 
                         <div class="form-group">
                             <label>Gender</label>
-                            <select name="gender" required>
+                            <select name="gender" required
+                                style="padding: 10px; border-radius: 10px; border: 1px solid #ccc;">
                                 <option value="male">Male</option>
                                 <option value="female">Female</option>
                             </select>
@@ -103,7 +104,8 @@ require_once '../../../backend/db_config.php';
 
                         <div class="form-group">
                             <label>Sale status</label>
-                            <select name="sale_status">
+                            <select name="sale_status"
+                                style="padding: 10px; border-radius: 10px; border: 1px solid #ccc;">
                                 <option value="available">Available</option>
                                 <option value="reserved">Reserved</option>
                                 <option value="sold">Sold</option>
