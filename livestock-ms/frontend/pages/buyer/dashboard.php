@@ -1,8 +1,8 @@
 <?php
 require_once '../../../backend/db_config.php';
 
-// If not logged in OR role is not admin, kick them out
-if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
+// If not logged in OR role is not buyer, kick them out
+if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'buyer') {
     header("Location: ../auth/login.php");
     exit();
 }
