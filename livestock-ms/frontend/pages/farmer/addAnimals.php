@@ -70,7 +70,7 @@ require_once '../../../backend/db_config.php';
 
                         <div class="form-group">
                             <label>Category</label>
-                            <select name="category_id" required>
+                            <select name="category_id" required class="text-box-add-ani">
                                 <option value="1">Pig</option>
                                 <option value="2">Cow</option>
                                 <option value="3">Chicken</option>
@@ -84,9 +84,8 @@ require_once '../../../backend/db_config.php';
 
                         <div class="form-group">
                             <label>Gender</label>
-                            <select name="gender" required
-                                style="padding: 10px; border-radius: 10px; border: 1px solid #ccc;">
-                                <option value="male">Male</option>
+                            <select name="gender" required class="text-box-add-ani">
+                                <option value=" male">Male</option>
                                 <option value="female">Female</option>
                             </select>
                         </div>
@@ -108,8 +107,7 @@ require_once '../../../backend/db_config.php';
 
                         <div class="form-group">
                             <label>Sale status</label>
-                            <select name="sale_status"
-                                style="padding: 10px; border-radius: 10px; border: 1px solid #ccc;">
+                            <select name="sale_status" class="text-box-add-ani">
                                 <option value="available">Available</option>
                                 <option value="reserved">Reserved</option>
                                 <option value="sold">Sold</option>
@@ -127,8 +125,8 @@ require_once '../../../backend/db_config.php';
                         <textarea name="notes" rows="4"></textarea>
                     </div>
 
-                    <button type="submit" name="save_animal" class="side-link"
-                        style="border: none; cursor: pointer; width: 250px;">Save Animal</button>
+                    <button type="submit" name="save_animal" class="side-link" class="save-animal-button">Save
+                        Animal</button>
                 </form>
             </section>
         </main>
