@@ -1,53 +1,51 @@
 <?php
-die("Backend is reached!"); 
+session_start();
 require_once 'db_config.php';
 
-// 1. Debugging - Show all errors
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
+echo "Step 1: File reached<br>";
 
-// 2. Database Connection
-require_once 'db_config.php'; 
-
-if (isset($_POST['login'])) {
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    echo "Step 2: POST method detected<br>";
+    
     $username = $_POST['username'];
     $password = $_POST['password'];
 
-    try {
-        $stmt = $conn->prepare("SELECT * FROM user WHERE username = :uname");
-        $stmt->execute([':uname' => $username]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt = $conn->prepare("SELECT * FROM user WHERE username = :uname");
+    $stmt->execute([':uname' => $username]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if ($user) {
-            // Verify Password
-            if (password_verify($password, $user['password_hash'])) {
-                
-                $_SESSION['user_id'] = $user['user_id'];
-                $_SESSION['role'] = $user['user_role'];
+    if ($user) {
+        echo "Step 3: User found in database<br>";
+        
+        // IMPORTANT: Check if you are using password_verify or plain text
+        if (password_verify($password, $user['password_hash'])) {
+            echo "Step 4: Password matches!<br>";
+            
+            $_SESSION['user_id'] = $user['user_id'];
+            $_SESSION['user_role'] = $user['user_role'];
+            $_SESSION['username'] = $user['username'];
 
-                // Redirect paths based on your structure
-                $role = $user['user_role'];
-                if ($role === 'admin') {
-                    header("Location: ../frontend/pages/admin/dashboard.php");
-                } elseif ($role === 'farmer') {
-                    header("Location: ../frontend/pages/farmer/dashboard.php");
-                } elseif ($role === 'buyer') {
-                    header("Location: ../frontend/pages/buyer/dashboard.php");
-                } else {
-                    echo "Role not recognized: " . $role;
-                }
-                exit();
+            $role = $user['user_role'];
+            echo "Step 5: Role is " . $role . "<br>";
 
+            // The actual redirect
+            if ($role === 'admin') {
+                echo "Step 6: Redirecting to Admin Dashboard...<br>";
+                header("Location: ../frontend/pages/admin/dashboard.php");
+                echo "<script>window.location.href='../frontend/pages/admin/dashboard.php';</script>";
             } else {
-                echo "Invalid password.";
+                echo "Step 6: Role is not admin, checking others...<br>";
             }
+            exit();
+
         } else {
-            echo "User not found.";
+            echo "STOP: Password does not match. <br>";
+            echo "Input password: " . $password . "<br>";
+            echo "DB Hash: " . $user['password_hash'];
         }
-    } catch (PDOException $e) {
-        echo "Database Error: " . $e->getMessage();
+    } else {
+        echo "STOP: No user found with username: " . $username;
     }
 } else {
-    echo "Form not submitted correctly. Make sure your button has name='login'";
+    echo "STOP: Not a POST request.";
 }
-?>
