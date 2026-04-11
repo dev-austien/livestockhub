@@ -40,7 +40,6 @@
                 style="width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; background: white;">
                 <option value="farmer">Farmer (Seller)</option>
                 <option value="buyer">Buyer (Consumer)</option>
-                <option value="admin">System Administrator</option>
             </select>
 
             <div id="farm_field">
