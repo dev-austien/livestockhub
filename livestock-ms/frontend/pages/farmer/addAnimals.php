@@ -125,7 +125,7 @@ require_once '../../../backend/db_config.php';
                         <textarea name="notes" rows="4"></textarea>
                     </div>
 
-                    <button type="submit" name="save_animal" class="side-link" class="save-animal-button">Save
+                    <button type="submit" name="save_animal" class="side-link save-animal-button">Save
                         Animal</button>
                 </form>
             </section>
