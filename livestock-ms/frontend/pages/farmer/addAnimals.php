@@ -80,7 +80,10 @@ require_once '../../../backend/db_config.php';
 
                         <div class="form-group">
                             <label>Gender</label>
-                            <input type="text" name="gender" />
+                            <select name="gender" required>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                            </select>
                         </div>
 
                         <div class="form-group">
@@ -100,7 +103,11 @@ require_once '../../../backend/db_config.php';
 
                         <div class="form-group">
                             <label>Sale status</label>
-                            <input type="text" name="sale_status" />
+                            <select name="sale_status">
+                                <option value="available">Available</option>
+                                <option value="reserved">Reserved</option>
+                                <option value="sold">Sold</option>
+                            </select>
                         </div>
                     </div>
 
