@@ -1,8 +1,8 @@
 <?php
 require_once '../../../backend/db_config.php';
 
-// If not logged in OR role is not admin, kick them out
-if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
+// Check if the user is a FARMER. If not, send them away.
+if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'farmer') {
     header("Location: ../auth/login.php");
     exit();
 }
