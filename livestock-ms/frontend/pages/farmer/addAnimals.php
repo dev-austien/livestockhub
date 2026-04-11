@@ -70,7 +70,9 @@ require_once '../../../backend/db_config.php';
 
                         <div class="form-group">
                             <label>Category</label>
-                            <select name="category_id" required class="form-group">
+                            <select name="category_id" required
+                                style="padding: 10px; border-radius: 10px; border: 1px solid #ccc;">
+                                <option value="">-- Select Category --</option>
                                 <option value="1">Pig</option>
                                 <option value="2">Cow</option>
                                 <option value="3">Chicken</option>
