@@ -70,7 +70,7 @@ require_once '../../../backend/db_config.php';
 
                         <div class="form-group">
                             <label>Category</label>
-                            <select name="category_id" required class="text-box-add-ani form-group">
+                            <select name="category_id" required class="form-group">
                                 <option value="1">Pig</option>
                                 <option value="2">Cow</option>
                                 <option value="3">Chicken</option>
@@ -84,7 +84,7 @@ require_once '../../../backend/db_config.php';
 
                         <div class="form-group">
                             <label>Gender</label>
-                            <select name="gender" required class="text-box-add-ani form-group">
+                            <select name="gender" required class="form-group">
                                 <option value=" male">Male</option>
                                 <option value="female">Female</option>
                             </select>
@@ -107,7 +107,7 @@ require_once '../../../backend/db_config.php';
 
                         <div class="form-group">
                             <label>Sale status</label>
-                            <select name="sale_status" class="text-box-add-ani form-group">
+                            <select name="sale_status" class="form-group">
                                 <option value="available">Available</option>
                                 <option value="reserved">Reserved</option>
                                 <option value="sold">Sold</option>
