@@ -29,14 +29,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             echo "Step 5: Role is " . $role . "<br>";
 
             // The actual redirect
+           // ... (Inside Step 5, where it identifies the role)
+
             if ($role === 'admin') {
                 echo "Step 6: Redirecting to Admin Dashboard...<br>";
                 header("Location: ../frontend/pages/admin/dashboard.php");
                 echo "<script>window.location.href='../frontend/pages/admin/dashboard.php';</script>";
+                exit();
+            } elseif ($role === 'farmer') {
+                echo "Step 6: Redirecting to Farmer Dashboard...<br>";
+                header("Location: ../frontend/pages/farmer/dashboard.php");
+                echo "<script>window.location.href='../frontend/pages/farmer/dashboard.php';</script>";
+                exit();
+            } elseif ($role === 'buyer') {
+                echo "Step 6: Redirecting to Buyer Dashboard...<br>";
+                header("Location: ../frontend/pages/buyer/dashboard.php");
+                echo "<script>window.location.href='../frontend/pages/buyer/dashboard.php';</script>";
+                exit();
             } else {
-                echo "Step 6: Role is not admin, checking others...<br>";
+                echo "Step 6: Role detected but no redirect path assigned for: " . $role;
             }
-            exit();
 
         } else {
             echo "STOP: Password does not match. <br>";
