@@ -1,3 +1,7 @@
+<?php 
+// Include config just to access the session started there
+require_once '../../../backend/db_config.php'; 
+?>
 <!doctype html>
 <html lang="en">
 
@@ -55,7 +59,7 @@
             </header>
 
             <section class="form-container">
-                <form class="form-card" action="process_animal.php" method="POST">
+                <form class="form-card" method="POST" action="../../../backend/add_animal_process.php">
                     <h2>Add new animal</h2>
 
                     <div class="form-grid">
@@ -86,7 +90,7 @@
 
                         <div class="form-group">
                             <label>Current weight (kg)</label>
-                            <input type="number" name="weight" step="0.01" />
+                            <input type="number" step="0.01" name="weight" />
                         </div>
 
                         <div class="form-group">
@@ -110,8 +114,8 @@
                         <textarea name="notes" rows="4"></textarea>
                     </div>
 
-                    <button type="submit" name="submit_animal" class="side-link"
-                        style="cursor: pointer; border: none;">Save Animal</button>
+                    <button type="submit" name="save_animal" class="side-link"
+                        style="border: none; cursor: pointer; width: 250px;">Save Animal</button>
                 </form>
             </section>
         </main>
