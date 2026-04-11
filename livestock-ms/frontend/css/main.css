@@ -22,6 +22,7 @@
 .logo-panel {
   border-bottom: 1px solid #e0e0e0;
   padding: 25px;
+  border-right: 1px solid #e0e0e0;
 }
 
 .logo {
