@@ -53,63 +53,63 @@
         </header>
 
         <section class="form-container">
-          <form class="form-card">
-            <h2>Add new animal</h2>
+          <form class="form-card" action="process_animal.php" method="POST">
+  <h2>Add new animal</h2>
 
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Animal name / tag</label>
-                <input type="text" name="animal_name" />
-              </div>
+  <div class="form-grid">
+    <div class="form-group">
+      <label>Animal name / tag</label>
+      <input type="text" name="animal_name" required />
+    </div>
 
-              <div class="form-group">
-                <label>Category</label>
-                <input type="text" name="category" />
-              </div>
+    <div class="form-group">
+      <label>Category</label>
+      <input type="text" name="category" />
+    </div>
 
-              <div class="form-group">
-                <label>Breed</label>
-                <input type="text" name="breed" />
-              </div>
+    <div class="form-group">
+      <label>Breed</label>
+      <input type="text" name="breed" />
+    </div>
 
-              <div class="form-group">
-                <label>Gender</label>
-                <input type="text" name="gender" />
-              </div>
+    <div class="form-group">
+      <label>Gender</label>
+      <input type="text" name="gender" />
+    </div>
 
-              <div class="form-group">
-                <label>Date of birth</label>
-                <input type="date" name="dob" />
-              </div>
+    <div class="form-group">
+      <label>Date of birth</label>
+      <input type="date" name="dob" />
+    </div>
 
-              <div class="form-group">
-                <label>Current weight (kg)</label>
-                <input type="number" name="weight" />
-              </div>
+    <div class="form-group">
+      <label>Current weight (kg)</label>
+      <input type="number" name="weight" step="0.01" />
+    </div>
 
-              <div class="form-group">
-                <label>Health status</label>
-                <input type="text" name="health" />
-              </div>
+    <div class="form-group">
+      <label>Health status</label>
+      <input type="text" name="health" />
+    </div>
 
-              <div class="form-group">
-                <label>Sale status</label>
-                <input type="text" name="sale_status" />
-              </div>
-            </div>
+    <div class="form-group">
+      <label>Sale status</label>
+      <input type="text" name="sale_status" />
+    </div>
+  </div>
 
-            <div class="form-group full-width">
-              <label>Location / farm</label>
-              <input type="text" name="location" />
-            </div>
+  <div class="form-group full-width">
+    <label>Location / farm</label>
+    <input type="text" name="location" />
+  </div>
 
-            <div class="form-group full-width">
-              <label>Notes</label>
-              <textarea name="notes" rows="4"></textarea>
-            </div>
-            
-            <button class="side-link">Save Animal</button>
-          </form>
+  <div class="form-group full-width">
+    <label>Notes</label>
+    <textarea name="notes" rows="4"></textarea>
+  </div>
+  
+  <button type="submit" name="submit_animal" class="side-link" style="cursor: pointer; border: none;">Save Animal</button>
+</form>
         </section>
       </main>
     </div>
