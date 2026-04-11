@@ -68,6 +68,67 @@
       </div>
 
       <!--insert here: forms-->
+
+      <div class="form-container">
+        <div class="form-card">
+          <h2>Add new animal</h2>
+
+          <div class="form-grid">
+      
+          <div class="form-group">
+           <label>Animal name / tag</label>
+           <input type="text">
+          </div>
+
+          <div class="form-group">
+           <label>Category</label>
+            <input type="text">
+          </div>
+
+          <div class="form-group">
+            <label>Breed</label>
+            <input type="text">
+          </div>
+
+          <div class="form-group">
+             <label>Gender</label>
+            <input type="text">
+           </div>
+
+          <div class="form-group">
+           <label>Date of birth</label>
+           <input type="date">
+          </div>
+
+          <div class="form-group">
+            <label>Current weight (kg)</label>
+            <input type="number">
+          </div>
+
+          <div class="form-group">
+            <label>Health status</label>
+            <input type="text">
+         </div>
+
+          <div class="form-group">
+           <label>Sale status</label>
+            <input type="text">
+        </div>
+    </div>
+
+    
+    <div class="form-group full-width">
+      <label>Location / farm</label>
+      <input type="text">
+    </div>
+
+    <div class="form-group full-width">
+      <label>Notes</label>
+      <textarea rows="4"></textarea>
+    </div>
+
+  </div>
+</div>
       
     </div>
   </body>
