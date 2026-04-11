@@ -53,3 +53,15 @@
 .full-width {
   grid-column: span 2;
 }
+
+.text-box-add-ani {
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+}
+
+.save-animal-button {
+  border: none;
+  cursor: pointer;
+  width: 250px;
+}
