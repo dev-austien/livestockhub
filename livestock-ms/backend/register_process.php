@@ -54,7 +54,7 @@ if (isset($_POST['register'])) {
             $farm_name = isset($_POST['farm_name']) ? $_POST['farm_name'] : $fname . "'s Farm";
             
             $sqlFarmer = "INSERT INTO farmers (user_id, farm_name, farm_location_brgy, farm_location_city_muni, farm_location_province, farm_location_latitude, farm_location_longitude) 
-                          VALUES (:uid, :farm, 'Pending', 'Pending', 'Pending', 'Pending, Pending')";
+                          VALUES (:uid, :farm, 'Pending', 'Pending', 'Pending', 'Pending', 'Pending')";
             
             $stmtFarmer = $conn->prepare($sqlFarmer);
             $stmtFarmer->execute([
