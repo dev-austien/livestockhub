@@ -3,6 +3,7 @@ require_once 'db_config.php';
 
 if (isset($_POST['register'])) {
     $fname   = $_POST['first_name'];
+    $mname   = $_POST['middle_name'];
     $lname   = $_POST['last_name'];
     $uname   = $_POST['username'];
     $email   = $_POST['email'];
@@ -31,8 +32,8 @@ if (isset($_POST['register'])) {
         $conn->beginTransaction();
 
         // 1. Insert into 'user' table
-        $sql = "INSERT INTO user (username, user_email, user_phone_number, password_hash, user_role, user_last_name, user_first_name, user_status) 
-                VALUES (:uname, :email, :phone, :pass, :role, :lname, :fname, 'active')";
+        $sql = "INSERT INTO user (username, user_email, user_phone_number, password_hash, user_role, user_last_name, user_first_name, user_middle_name, user_status) 
+                VALUES (:uname, :email, :phone, :pass, :role, :lname, :fname, :mname, 'active')";
         
         $stmt = $conn->prepare($sql);
         $stmt->execute([
@@ -42,7 +43,8 @@ if (isset($_POST['register'])) {
             ':pass'  => $hashed_pass,
             ':role'  => $role, // This is now safe because of the check above
             ':lname' => $lname,
-            ':fname' => $fname
+            ':fname' => $fname,
+            ':mname' => $mname
         ]);
 
         $new_user_id = $conn->lastInsertId();
@@ -52,7 +54,7 @@ if (isset($_POST['register'])) {
             $farm_name = isset($_POST['farm_name']) ? $_POST['farm_name'] : $fname . "'s Farm";
             
             $sqlFarmer = "INSERT INTO farmers (user_id, farm_name, farm_location_brgy, farm_location_city_muni, farm_location_province, farm_location_latitude, farm_location_longitude) 
-                          VALUES (:uid, :farm, 'Pending', 'Pending', 'Pending', 0.0, 0.0)";
+                          VALUES (:uid, :farm, 'Pending', 'Pending', 'Pending', 'Pending, Pending')";
             
             $stmtFarmer = $conn->prepare($sqlFarmer);
             $stmtFarmer->execute([
