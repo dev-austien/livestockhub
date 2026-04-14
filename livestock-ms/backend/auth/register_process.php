@@ -1,4 +1,7 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 // Fix 1: Correct path to config
 require_once __DIR__ . '/../shared/db_config.php';
 
