@@ -13,23 +13,22 @@ $messageType = "";
 
 // 2. Handle Form Submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Collect and sanitize input
     $animal_type   = $_POST['animal_type'] ?? '';
     $breed         = $_POST['breed'] ?? '';
     $tag_id        = $_POST['tag_id'] ?? '';
     $dob           = $_POST['dob'] ?? null;
     $sex           = $_POST['sex'] ?? '';
     $weight        = $_POST['weight'] ?? 0;
-    $health_status = $_POST['health_status'] ?? 'healthy';
+    $health_status = $_POST['health_status'] ?? 'Healthy';
     $notes         = $_POST['notes'] ?? '';
-    $farmer_id     = $_SESSION['user_id'] ?? 1; // Assuming user_id is in session
+    $farmer_id     = $_SESSION['user_id'] ?? 1;
 
     try {
         $sql = "INSERT INTO livestock (tag_number, species, breed_name, date_of_birth, sex, weight, health_status, notes, farmer_id, date_registered) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
-
-$stmt = $conn->prepare($sql);
-$stmt->execute([$tag_id, $animal_type, $breed, $dob, $sex, $weight, $health_status, $notes, $farmer_id]);
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+        
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([$tag_id, $animal_type, $breed, $dob, $sex, $weight, $health_status, $notes, $farmer_id]);
 
         $message = "Animal registered successfully!";
         $messageType = "ok";
@@ -171,12 +170,11 @@ $current_page = 'addAnimals';
             <div class="ag-side-card">
                 <div class="ag-side-title">Recently Added</div>
                 <?php
-                // Fetch last 3 added animals for the sidebar
-                $recentStmt = $conn->query("SELECT animal_id, species, created_at FROM livestock ORDER BY created_at DESC LIMIT 3");
+                $recentStmt = $conn->query("SELECT livestock_id, tag_number, species, date_registered FROM livestock ORDER BY date_registered DESC LIMIT 3");
                 while ($row = $recentStmt->fetch()):
                 ?>
                 <div class="ag-meta-row">
-                    <span class="ag-meta-lbl"><?= htmlspecialchars($row['animal_id']) ?> —
+                    <span class="ag-meta-lbl"><?= htmlspecialchars($row['tag_number']) ?> —
                         <?= htmlspecialchars($row['species']) ?></span>
                     <span class="ag-meta-val">New</span>
                 </div>
