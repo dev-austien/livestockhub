@@ -1,7 +1,3 @@
--- ==========================================
--- FIXED & IMPROVED DATABASE SCHEMA
--- ==========================================
-
 CREATE TABLE `user` (
   `user_id`           INT             NOT NULL AUTO_INCREMENT,
   `username`          VARCHAR(25)     NOT NULL UNIQUE,
