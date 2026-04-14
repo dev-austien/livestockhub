@@ -24,7 +24,7 @@ try {
     $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=$charset";
     
     // 4. Create the Connection
-    $conn = new PDO($dsn, $username, $password, $options);
+    $pdo = new PDO($dsn, $username, $password, $options);
 
     // 5. Global Session Management
     if (session_status() === PHP_SESSION_NONE) {
