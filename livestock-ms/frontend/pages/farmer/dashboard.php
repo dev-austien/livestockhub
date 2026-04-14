@@ -26,9 +26,11 @@ try {
           ORDER BY l.date_registered DESC
           LIMIT 5";
 
-    $stmt = $pdo->prepare($query);
-    $stmt->execute([':user_id' => $user_id]);
-    $recent_livestock = $stmt->fetchAll();
+   $stmt = $pdo->prepare($query);
+$stmt->execute([
+    ':pen_id' => $pen_id,
+    ':status' => $status
+]);
 
 } catch (PDOException $e) {
     die("Database Error: " . $e->getMessage());
@@ -56,7 +58,7 @@ try {
                 <tr>
                     <td><?php echo htmlspecialchars($row['tag_number']); ?></td>
                     <td><?php echo htmlspecialchars($row['species']); ?></td>
-                    <td><?php echo htmlspecialchars($row['breed_name']); ?></td>
+                    <td><?php echo htmlspecialchars($row['breed']); ?></td>
                     <td><?php echo htmlspecialchars($row['health_status']); ?></td>
                     <td><?php echo date('M d, Y', strtotime($row['date_registered'])); ?></td>
                 </tr>
