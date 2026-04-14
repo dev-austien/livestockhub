@@ -18,7 +18,7 @@ $current_page = 'dashboard';
     <link
         href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=Playfair+Display:ital,wght@0,600;1,500&display=swap"
         rel="stylesheet" />
-    <link rel="stylesheet" href="/.../.../.../agrihub.css" />
+    <link rel="stylesheet" href="/.../.../css/agrihub.css" />
 </head>
 
 <body>
