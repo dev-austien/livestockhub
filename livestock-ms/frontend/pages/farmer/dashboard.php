@@ -117,7 +117,7 @@ if ($farm_id) {
 
     <?php
 // FIXED NAV INCLUDE (NO BROKEN PATHS)
-include $_SERVER['DOCUMENT_ROOT'] . '/livestock-ms/frontend/includes/nav.php';
+include $_SERVER['DOCUMENT_ROOT'] . '/livestock-ms/frontend/css/includes/nav.php';
 ?>
 
     <div class="ag-page">
