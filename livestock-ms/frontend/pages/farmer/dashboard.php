@@ -1,6 +1,6 @@
 <?php
 session_start();
-include('../../../config/db_config.php'); // Ensure this path is correct
+include('../../../backend/db_config.php'); // Ensure this path is correct
 
 // 1. Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
