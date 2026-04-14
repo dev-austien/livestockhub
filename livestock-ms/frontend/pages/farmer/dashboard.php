@@ -13,11 +13,11 @@ $user_id = $_SESSION['user_id'];
 try {
     // 2. Fetch Recent Livestock
     // We JOIN with farms to ensure we only get livestock belonging to THIS farmer
-    $query = "SELECT l.livestock_id, l.type, l.breed, l.health_status, l.created_at 
+   $query = "SELECT l.livestock_id, l.tag_number, l.name, l.species, l.breed_name, l.health_status, l.date_registered 
           FROM livestock l
           JOIN farms f ON l.farm_id = f.farm_id
           WHERE f.farmer_id = :user_id
-          ORDER BY l.created_at DESC 
+          ORDER BY l.date_registered DESC 
           LIMIT 5";
 
     $stmt = $pdo->prepare($query);
@@ -48,10 +48,11 @@ try {
                 <?php if (count($recent_livestock) > 0): ?>
                 <?php foreach ($recent_livestock as $row): ?>
                 <tr>
-                    <td><?php echo htmlspecialchars($row['livestock_id']); ?></td>
-                    <td><?php echo htmlspecialchars($row['type']); ?></td>
-                    <td><?php echo htmlspecialchars($row['breed']); ?></td>
-                    <td><?php echo date('M d, Y', strtotime($row['created_at'])); ?></td>
+                    <td><?php echo htmlspecialchars($row['tag_number']); ?></td>
+                    <td><?php echo htmlspecialchars($row['species']); ?></td>
+                    <td><?php echo htmlspecialchars($row['breed_name']); ?></td>
+                    <td><?php echo htmlspecialchars($row['health_status']); ?></td>
+                    <td><?php echo date('M d, Y', strtotime($row['date_registered'])); ?></td>
                 </tr>
                 <?php endforeach; ?>
                 <?php else: ?>
