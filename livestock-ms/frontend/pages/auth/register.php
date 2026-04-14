@@ -15,7 +15,7 @@
         <h2>Create Account</h2>
         <p style="text-align: center; color: #666; font-size: 0.9rem;">Join the AgriStock community</p>
 
-        <<form action="../../backend/auth/register_process.php" method="POST">
+        <form action="../../../backend/auth/register_process.php" method="POST">
             <div style="display: flex; gap: 10px; flex-direction: column;">
                 <div style="flex: 1;">
                     <label for="first_name">First Name</label>
@@ -59,11 +59,11 @@
             <input type="password" id="confirm_password" name="confirm_password" required placeholder="••••••••">
 
             <button type="submit" name="register">Create Account</button>
-            </form>
+        </form>
 
-            <p style="font-size: 12px; text-align: center; margin-top: 15px;">
-                Already have an account? <a href="login.php">Login here</a>
-            </p>
+        <p style="font-size: 12px; text-align: center; margin-top: 15px;">
+            Already have an account? <a href="login.php">Login here</a>
+        </p>
     </div>
 
     <script>

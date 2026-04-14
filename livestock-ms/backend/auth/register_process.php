@@ -1,5 +1,5 @@
 <?php
-require_once '../shared/db_config.php';
+require_once __DIR__ . '/../shared/db_config.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $first_name = $_POST['first_name'];
