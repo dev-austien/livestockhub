@@ -1,8 +1,34 @@
 <?php
+session_start();
 require_once '../../../backend/db_config.php';
+
+// 1. Security & Role Check
 if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'farmer') {
-    header("Location: ../auth/login.php"); exit();
+    header("Location: ../auth/login.php"); 
+    exit();
 }
+
+$farmer_id = $_SESSION['user_id'] ?? 1;
+
+// 2. Fetch Farm Information
+$farmStmt = $conn->prepare("SELECT * FROM farms WHERE farmer_id = ? LIMIT 1");
+$farmStmt->execute([$farmer_id]);
+$farm = $farmStmt->fetch(PDO::FETCH_ASSOC);
+
+// 3. Fetch Pen Breakdown
+$penStmt = $conn->prepare("SELECT * FROM pens WHERE farm_id = ?");
+$penStmt->execute([$farm['id'] ?? 0]);
+$pens = $penStmt->fetchAll(PDO::FETCH_ASSOC);
+
+// 4. Calculate Stats for Sidebar
+$totalCapacity = 0;
+$totalOccupied = 0;
+foreach ($pens as $p) {
+    $totalCapacity += $p['capacity'];
+    $totalOccupied += $p['occupied'];
+}
+$utilization = ($totalCapacity > 0) ? round(($totalOccupied / $totalCapacity) * 100) : 0;
+
 $page_title   = 'My Farm';
 $current_page = 'myFarm';
 ?>
@@ -18,12 +44,12 @@ $current_page = 'myFarm';
     <link
         href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=Playfair+Display:ital,wght@0,600;1,500&display=swap"
         rel="stylesheet" />
-    <link rel="stylesheet" href="/livestock-ms/frontend/css/agrihub.css" />
+    <link rel="stylesheet" href="../../css/agrihub.css" />
 </head>
 
 <body>
 
-    <?php include '../includes/nav.php'; ?>
+    <?php include '../../css/include.css/nav.php'; ?>
 
     <div class="ag-page">
         <main class="ag-main">
@@ -42,31 +68,25 @@ $current_page = 'myFarm';
                     <div class="ag-form-grid ag-mb-md">
                         <div class="ag-form-group">
                             <label class="ag-label">Farm name</label>
-                            <input class="ag-input" type="text" value="James Family Farm" readonly />
+                            <input class="ag-input" type="text"
+                                value="<?= htmlspecialchars($farm['farm_name'] ?? 'Not Set') ?>" readonly />
                         </div>
                         <div class="ag-form-group">
                             <label class="ag-label">Farm ID</label>
-                            <input class="ag-input" type="text" value="FM-00491" readonly />
+                            <input class="ag-input" type="text"
+                                value="<?= htmlspecialchars($farm['farm_code'] ?? 'N/A') ?>" readonly />
                         </div>
                     </div>
                     <div class="ag-form-grid ag-mb-md">
                         <div class="ag-form-group">
                             <label class="ag-label">Location</label>
-                            <input class="ag-input" type="text" value="Cebu, Philippines" readonly />
+                            <input class="ag-input" type="text"
+                                value="<?= htmlspecialchars($farm['location'] ?? 'Philippines') ?>" readonly />
                         </div>
                         <div class="ag-form-group">
                             <label class="ag-label">Farm size</label>
-                            <input class="ag-input" type="text" value="4.5 hectares" readonly />
-                        </div>
-                    </div>
-                    <div class="ag-form-grid">
-                        <div class="ag-form-group">
-                            <label class="ag-label">Primary livestock</label>
-                            <input class="ag-input" type="text" value="Cattle, Goats" readonly />
-                        </div>
-                        <div class="ag-form-group">
-                            <label class="ag-label">Operating since</label>
-                            <input class="ag-input" type="text" value="March 2019" readonly />
+                            <input class="ag-input" type="text"
+                                value="<?= htmlspecialchars($farm['size'] ?? '0') ?> hectares" readonly />
                         </div>
                     </div>
                 </div>
@@ -87,34 +107,27 @@ $current_page = 'myFarm';
                         </tr>
                     </thead>
                     <tbody>
+                        <?php if (empty($pens)): ?>
                         <tr>
-                            <td class="strong">Pen A</td>
-                            <td class="muted">Cattle</td>
-                            <td>50</td>
-                            <td>42</td>
-                            <td><span class="ag-tag ok">Good</span></td>
+                            <td colspan="5" style="text-align:center; padding:20px;">No pens registered.</td>
                         </tr>
+                        <?php else: ?>
+                        <?php foreach ($pens as $pen): 
+                                $isNearFull = ($pen['occupied'] / $pen['capacity']) > 0.85;
+                            ?>
                         <tr>
-                            <td class="strong">Pen B</td>
-                            <td class="muted">Goats</td>
-                            <td>40</td>
-                            <td>38</td>
-                            <td><span class="ag-tag warn">Near full</span></td>
+                            <td class="strong"><?= htmlspecialchars($pen['pen_name']) ?></td>
+                            <td class="muted"><?= htmlspecialchars($pen['livestock_type']) ?></td>
+                            <td><?= $pen['capacity'] ?></td>
+                            <td><?= $pen['occupied'] ?></td>
+                            <td>
+                                <span class="ag-tag <?= $isNearFull ? 'warn' : 'ok' ?>">
+                                    <?= $isNearFull ? 'Near full' : 'Good' ?>
+                                </span>
+                            </td>
                         </tr>
-                        <tr>
-                            <td class="strong">Pen C</td>
-                            <td class="muted">Pigs</td>
-                            <td>40</td>
-                            <td>34</td>
-                            <td><span class="ag-tag ok">Good</span></td>
-                        </tr>
-                        <tr>
-                            <td class="strong">Pen D</td>
-                            <td class="muted">Chickens</td>
-                            <td>60</td>
-                            <td>34</td>
-                            <td><span class="ag-tag ok">Good</span></td>
-                        </tr>
+                        <?php endforeach; ?>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -124,52 +137,26 @@ $current_page = 'myFarm';
             <div class="ag-side-card">
                 <div class="ag-side-title">Farm stats</div>
                 <div class="ag-meta-row"><span class="ag-meta-lbl">Total capacity</span><span
-                        class="ag-meta-val">190</span></div>
+                        class="ag-meta-val"><?= $totalCapacity ?></span></div>
                 <div class="ag-meta-row"><span class="ag-meta-lbl">Occupied</span><span
-                        class="ag-meta-val warn">148</span></div>
+                        class="ag-meta-val <?= $utilization > 85 ? 'warn' : '' ?>"><?= $totalOccupied ?></span></div>
                 <div class="ag-meta-row"><span class="ag-meta-lbl">Available</span><span
-                        class="ag-meta-val ok">42</span></div>
-                <div class="ag-meta-row"><span class="ag-meta-lbl">Utilisation</span><span
-                        class="ag-meta-val">78%</span></div>
+                        class="ag-meta-val ok"><?= $totalCapacity - $totalOccupied ?></span></div>
+                <div class="ag-meta-row"><span class="ag-meta-lbl">Utilization</span><span
+                        class="ag-meta-val"><?= $utilization ?>%</span></div>
             </div>
 
             <div class="ag-side-card">
                 <div class="ag-side-title">Pen occupancy</div>
                 <div class="ag-bar-group">
+                    <?php foreach ($pens as $pen): 
+                        $height = ($pen['occupied'] / $pen['capacity']) * 60; // Max height 60px
+                    ?>
                     <div class="ag-bar-col">
-                        <div class="ag-bar hi" style="height:46px;"></div>
-                        <div class="ag-bar-lbl">A</div>
+                        <div class="ag-bar <?= $height > 50 ? 'hi' : '' ?>" style="height:<?= $height ?>px;"></div>
+                        <div class="ag-bar-lbl"><?= substr($pen['pen_name'], -1) ?></div>
                     </div>
-                    <div class="ag-bar-col">
-                        <div class="ag-bar hi" style="height:52px;"></div>
-                        <div class="ag-bar-lbl">B</div>
-                    </div>
-                    <div class="ag-bar-col">
-                        <div class="ag-bar" style="height:40px;"></div>
-                        <div class="ag-bar-lbl">C</div>
-                    </div>
-                    <div class="ag-bar-col">
-                        <div class="ag-bar" style="height:30px;"></div>
-                        <div class="ag-bar-lbl">D</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="ag-side-card">
-                <div class="ag-side-title">Activity</div>
-                <div class="ag-activity-item">
-                    <div class="ag-activity-dot new"></div>
-                    <div>
-                        <div class="ag-activity-text">Pen B nearing capacity — consider expanding</div>
-                        <div class="ag-activity-time">Today</div>
-                    </div>
-                </div>
-                <div class="ag-activity-item">
-                    <div class="ag-activity-dot"></div>
-                    <div>
-                        <div class="ag-activity-text">Pen A last cleaned 3 days ago</div>
-                        <div class="ag-activity-time">3d ago</div>
-                    </div>
+                    <?php endforeach; ?>
                 </div>
             </div>
         </aside>
