@@ -1,93 +1,85 @@
 <?php
 session_start();
-require_once '../../../backend/db_config.php';
+// Point to the consolidated config in the shared folder
+require_once '../../../backend/shared/db_config.php';
 
 /* -----------------------------
    AUTH CHECK
 ------------------------------*/
-if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'farmer') {
+// Use the 'Farmer' role with capitalized casing to match your auth logic
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'Farmer') {
     header("Location: ../auth/login.php");
     exit();
 }
 
-$user_id = $_SESSION['user_id'] ?? null;
+$user_id   = $_SESSION['user_id'];
+$farmer_id = $_SESSION['farmer_id']; // Use the specific farmer_id stored in session
 
 /* -----------------------------
    USER DATA
 ------------------------------*/
-// Match your schema: 'user_id' is the primary key in your 'users' table
-$stmt = $pdo->prepare("SELECT first_name, last_name FROM users WHERE user_id = :id");
-$stmt->execute([':id' => $user_id]);
-$user = $stmt->fetch(PDO::FETCH_ASSOC);
+// Updated column names: user_first_name, user_last_name
+$stmt = $pdo->prepare("SELECT user_first_name, user_last_name FROM user WHERE user_id = ?");
+$stmt->execute([$user_id]);
+$user = $stmt->fetch();
 
-$display_name = ($user['first_name'] ?? 'Farmer') . ' ' . ($user['last_name'] ?? '');
-
-$initials = strtoupper(
-    substr($user['first_name'] ?? 'F', 0, 1) .
-    substr($user['last_name'] ?? 'A', 0, 1)
-);
+$display_name = htmlspecialchars(($user['user_first_name'] ?? 'Farmer') . ' ' . ($user['user_last_name'] ?? ''));
+$initials = strtoupper(substr($user['user_first_name'] ?? 'F', 0, 1) . substr($user['user_last_name'] ?? 'A', 0, 1));
 
 /* -----------------------------
-   FARM DATA
+   TOTAL ANIMALS (STAT)
 ------------------------------*/
-$stmt = $pdo->prepare("SELECT farm_id FROM farms WHERE farmer_id = :id LIMIT 1");
-$stmt->execute([':id' => $user_id]);
-$farm = $stmt->fetch(PDO::FETCH_ASSOC);
-
-$farm_id = $farm['farm_id'] ?? null;
+$stmt = $pdo->prepare("SELECT COUNT(*) as total FROM livestock WHERE farmer_id = ?");
+$stmt->execute([$farmer_id]);
+$total_animals = $stmt->fetch()['total'] ?? 0;
 
 /* -----------------------------
-   TOTAL ANIMALS
+   PENDING ORDERS (STAT)
 ------------------------------*/
-$total_animals = 0;
-if ($farm_id) {
-    $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM livestock WHERE farm_id = :farm_id");
-    $stmt->execute([':farm_id' => $farm_id]);
-    $total_animals = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
-}
+// Assuming orders link to livestock which links to farmer_id
+$stmt = $pdo->prepare("
+    SELECT COUNT(*) as total 
+    FROM `order` o
+    JOIN livestock l ON o.livestock_id = l.livestock_id
+    WHERE l.farmer_id = ? AND o.status = 'Pending'
+");
+$stmt->execute([$farmer_id]);
+$pending_orders = $stmt->fetch()['total'] ?? 0;
 
 /* -----------------------------
-   PENDING ORDERS
-------------------------------*/
-$stmt = $pdo->prepare("SELECT COUNT(*) as total FROM orders WHERE seller_id = :id AND status = 'Pending'");
-$stmt->execute([':id' => $user_id]);
-$pending_orders = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
-
-/* -----------------------------
-   MONTHLY REVENUE
+   MONTHLY REVENUE (STAT)
 ------------------------------*/
 $stmt = $pdo->prepare("
-    SELECT COALESCE(SUM(total_amount),0) as revenue
-    FROM orders
-    WHERE seller_id = :id
-    AND status = 'Completed'
-    AND MONTH(created_at) = MONTH(CURRENT_DATE())
+    SELECT COALESCE(SUM(o.total_price), 0) as revenue
+    FROM `order` o
+    JOIN livestock l ON o.livestock_id = l.livestock_id
+    WHERE l.farmer_id = ? 
+    AND o.status = 'Completed'
+    AND MONTH(o.order_date) = MONTH(CURRENT_DATE())
 ");
-$stmt->execute([':id' => $user_id]);
-$revenue = $stmt->fetch(PDO::FETCH_ASSOC)['revenue'] ?? 0;
+$stmt->execute([$farmer_id]);
+$revenue = $stmt->fetch()['revenue'] ?? 0;
 
 /* -----------------------------
-   RECENT LIVESTOCK
+   RECENT LIVESTOCK (READ)
 ------------------------------*/
-$recent_livestock = [];
-if ($farm_id) {
-    // FIXED: Using 'animal_id' and 'breed_name' to match your schema
-    $stmt = $pdo->prepare("
-        SELECT
-            animal_id,
-            species,
-            breed_name,
-            weight,
-            health_status,
-            date_registered
-        FROM livestock
-        WHERE farm_id = :farm_id
-        ORDER BY date_registered DESC
-        LIMIT 5
-    ");
-    $stmt->execute([':farm_id' => $farm_id]);
-    $recent_livestock = $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
+// Joins with category and breeds to show names instead of IDs
+$stmt = $pdo->prepare("
+    SELECT 
+        l.livestock_id, 
+        c.category_name, 
+        b.breed_name, 
+        l.health_status,
+        (SELECT weight FROM livestock_weight WHERE livestock_id = l.livestock_id ORDER BY date_recorded DESC LIMIT 1) as current_weight
+    FROM livestock l
+    JOIN category c ON l.category_id = c.category_id
+    JOIN breeds b ON l.breed_id = b.breed_id
+    WHERE l.farmer_id = ?
+    ORDER BY l.livestock_id DESC
+    LIMIT 5
+");
+$stmt->execute([$farmer_id]);
+$recent_livestock = $stmt->fetchAll();
 ?>
 
 <!doctype html>
@@ -96,21 +88,18 @@ if ($farm_id) {
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AgriHub Dashboard</title>
-    <link rel="stylesheet" href="/livestockhub/livestock-ms/frontend/css/agrihub.css">
+    <title>AgriHub — Farmer Dashboard</title>
+    <link rel="stylesheet" href="../../css/agrihub.css">
 </head>
 
 <body>
 
-    <?php
-// FIXED NAV INCLUDE: Using relative path to find the file correctly
-include '../../css/includes/nav.php';
-?>
+    <?php include '../../css/include.css/nav.php'; ?>
 
     <div class="ag-page">
         <main class="ag-main">
             <div class="ag-page-header">
-                <div class="ag-eyebrow">Good morning, <?= htmlspecialchars($display_name) ?></div>
+                <div class="ag-eyebrow">Good morning, <?= $display_name ?></div>
                 <h1 class="ag-page-title">Your farm, <em>at a glance.</em></h1>
             </div>
 
@@ -125,55 +114,69 @@ include '../../css/includes/nav.php';
                 </div>
                 <div class="ag-stat">
                     <div class="ag-stat-lbl">Revenue (Mo.)</div>
-                    <div class="ag-stat-val">₱<?= number_format($revenue) ?></div>
+                    <div class="ag-stat-val">₱<?= number_format($revenue, 2) ?></div>
                 </div>
             </div>
 
             <div class="ag-card">
                 <div class="ag-card-header">
-                    <span class="ag-card-title">Recent Livestock</span>
+                    <span class="ag-card-title">Recent Inventory</span>
+                    <a href="mylivestock.php" class="ag-btn ag-btn-ghost" style="font-size: 12px;">View All</a>
                 </div>
-                <table class="ag-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Animal</th>
-                            <th>Breed</th>
-                            <th>Weight</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (!empty($recent_livestock)): ?>
-                        <?php foreach ($recent_livestock as $row): ?>
-                        <tr>
-                            <td><?= htmlspecialchars($row['animal_id']) ?></td>
-                            <td><?= htmlspecialchars($row['species']) ?></td>
-                            <td><?= htmlspecialchars($row['breed_name']) ?></td>
-                            <td><?= htmlspecialchars($row['weight']) ?> kg</td>
-                            <td><?= htmlspecialchars($row['health_status']) ?></td>
-                        </tr>
-                        <?php endforeach; ?>
-                        <?php else: ?>
-                        <tr>
-                            <td colspan="5" style="text-align:center;">No livestock found</td>
-                        </tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
+                <div class="ag-card-body">
+                    <table class="ag-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Type</th>
+                                <th>Breed</th>
+                                <th>Latest Weight</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($recent_livestock)): ?>
+                            <?php foreach ($recent_livestock as $row): ?>
+                            <tr>
+                                <td>#<?= $row['livestock_id'] ?></td>
+                                <td><?= htmlspecialchars($row['category_name']) ?></td>
+                                <td><?= htmlspecialchars($row['breed_name']) ?></td>
+                                <td><?= $row['current_weight'] ?? '0.00' ?> kg</td>
+                                <td>
+                                    <span class="ag-tag <?= ($row['health_status'] == 'Healthy') ? 'ok' : 'danger' ?>">
+                                        <?= htmlspecialchars($row['health_status']) ?>
+                                    </span>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                            <?php else: ?>
+                            <tr>
+                                <td colspan="5" style="text-align:center; padding: 40px;">No livestock registered yet.
+                                </td>
+                            </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </main>
 
         <aside class="ag-sidebar">
             <div class="ag-side-card">
-                <div class="ag-side-title">Farmer profile</div>
+                <div class="ag-side-title">Farmer Profile</div>
                 <div class="ag-profile-row">
-                    <div class="ag-profile-av"><?= htmlspecialchars($initials) ?></div>
+                    <div class="ag-profile-av"><?= $initials ?></div>
                     <div>
-                        <div class="ag-profile-name"><?= htmlspecialchars($display_name) ?></div>
-                        <div class="ag-profile-role">Verified Farmer</div>
+                        <div class="ag-profile-name"><?= $display_name ?></div>
+                        <div class="ag-profile-role">BiPSU-CSS Verified</div>
                     </div>
                 </div>
+            </div>
+
+            <div class="ag-side-card">
+                <div class="ag-side-title">Quick Actions</div>
+                <a href="addAnimals.php" class="ag-btn ag-btn-primary"
+                    style="width: 100%; display: block; text-align: center; margin-bottom: 10px;">Add New Animal</a>
             </div>
         </aside>
     </div>

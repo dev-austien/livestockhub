@@ -1,42 +1,21 @@
 <?php
 session_start();
-require_once '../../../backend/db_config.php';
+require_once '../../../backend/shared/db_config.php';
 
 // 1. Security & Role Check
-if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'farmer') {
+// Note: Changed to match the 'Farmer' casing used in your session logic
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'Farmer') {
     header("Location: ../auth/login.php"); 
     exit();
 }
 
-$message = "";
-$messageType = "";
+// 2. Fetch Categories for the Dropdown (Dynamic Read)
+$categories = $pdo->query("SELECT * FROM category ORDER BY category_name ASC")->fetchAll();
 
-// 2. Handle Form Submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $animal_type   = $_POST['animal_type'] ?? '';
-    $breed         = $_POST['breed'] ?? '';
-    $tag_id        = $_POST['tag_id'] ?? '';
-    $dob           = $_POST['dob'] ?? null;
-    $sex           = $_POST['sex'] ?? '';
-    $weight        = $_POST['weight'] ?? 0;
-    $health_status = $_POST['health_status'] ?? 'Healthy';
-    $notes         = $_POST['notes'] ?? '';
-    $farmer_id     = $_SESSION['user_id'] ?? 1;
-
-    try {
-        $sql = "INSERT INTO livestock (tag_number, species, breed_name, date_of_birth, sex, weight, health_status, notes, farmer_id, date_registered) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
-        
-        $stmt = $conn->prepare($sql);
-        $stmt->execute([$tag_id, $animal_type, $breed, $dob, $sex, $weight, $health_status, $notes, $farmer_id]);
-
-        $message = "Animal registered successfully!";
-        $messageType = "ok";
-    } catch (PDOException $e) {
-        $message = "Error: Could not register animal. " . $e->getMessage();
-        $messageType = "danger";
-    }
-}
+// 3. Fetch Locations/Pens for the Farmer
+$stmtLoc = $pdo->prepare("SELECT * FROM location WHERE farmer_id = ?");
+$stmtLoc->execute([$_SESSION['farmer_id']]);
+$locations = $stmtLoc->fetchAll();
 
 $page_title   = 'Add Animals';
 $current_page = 'addAnimals';
@@ -54,10 +33,20 @@ $current_page = 'addAnimals';
         href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=Playfair+Display:ital,wght@0,600;1,500&display=swap"
         rel="stylesheet" />
     <link rel="stylesheet" href="../../css/agrihub.css" />
+
+    <script>
+    function loadBreeds(categoryId) {
+        if (categoryId == "") {
+            document.getElementById("breed_select").innerHTML = "<option value=''>Select category first…</option>";
+            return;
+        }
+        // You can implement an AJAX call here later. For now, we'll keep it simple.
+        // Or fetch all breeds and filter via JS.
+    }
+    </script>
 </head>
 
 <body>
-
     <?php include '../../css/include.css/nav.php'; ?>
 
     <div class="ag-page">
@@ -67,10 +56,9 @@ $current_page = 'addAnimals';
                 <h1 class="ag-page-title">Register a <em>new animal.</em></h1>
             </div>
 
-            <?php if ($message): ?>
-            <div class="ag-tag <?= $messageType ?>"
-                style="margin-bottom: 20px; width: 100%; padding: 10px; text-align: center;">
-                <?= htmlspecialchars($message) ?>
+            <?php if (isset($_GET['msg'])): ?>
+            <div class="ag-tag ok" style="margin-bottom: 20px; width: 100%; padding: 10px; text-align: center;">
+                Animal registered successfully!
             </div>
             <?php endif; ?>
 
@@ -79,66 +67,62 @@ $current_page = 'addAnimals';
                     <span class="ag-card-title">Animal details</span>
                 </div>
                 <div class="ag-card-body">
-                    <form method="POST" action="">
+                    <form method="POST" action="../../../backend/farmer/livestock_ctrl.php">
+                        <input type="hidden" name="action" value="add">
+
                         <div class="ag-form-grid ag-mb-md">
                             <div class="ag-form-group">
-                                <label class="ag-label">Animal type</label>
-                                <select class="ag-select" name="animal_type" required>
+                                <label class="ag-label">Animal Category</label>
+                                <select class="ag-select" name="category_id" required onchange="loadBreeds(this.value)">
                                     <option value="">Select type…</option>
-                                    <option value="Cattle">Cattle</option>
-                                    <option value="Goat">Goat</option>
-                                    <option value="Pig">Pig</option>
-                                    <option value="Chicken">Chicken</option>
-                                    <option value="Sheep">Sheep</option>
-                                    <option value="Other">Other</option>
+                                    <?php foreach ($categories as $cat): ?>
+                                    <option value="<?= $cat['category_id'] ?>">
+                                        <?= htmlspecialchars($cat['category_name']) ?></option>
+                                    <?php endforeach; ?>
                                 </select>
                             </div>
                             <div class="ag-form-group">
-                                <label class="ag-label">Breed</label>
-                                <input class="ag-input" type="text" name="breed" placeholder="e.g. Brown Angus"
-                                    required />
+                                <label class="ag-label">Breed ID</label>
+                                <input class="ag-input" type="number" name="breed_id" placeholder="Breed ID" required />
                             </div>
                         </div>
 
                         <div class="ag-form-grid ag-mb-md">
                             <div class="ag-form-group">
-                                <label class="ag-label">Tag / ID</label>
-                                <input class="ag-input" type="text" name="tag_id" placeholder="e.g. C-043" required />
+                                <label class="ag-label">Farm Location / Pen</label>
+                                <select class="ag-select" name="location_id" required>
+                                    <option value="">Select pen/location…</option>
+                                    <?php foreach ($locations as $loc): ?>
+                                    <option value="<?= $loc['location_id'] ?>">
+                                        <?= htmlspecialchars($loc['location_name']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
                             <div class="ag-form-group">
                                 <label class="ag-label">Date of birth</label>
-                                <input class="ag-input" type="date" name="dob" />
+                                <input class="ag-input" type="date" name="date_of_birth" required />
                             </div>
                         </div>
 
                         <div class="ag-form-grid ag-mb-md">
                             <div class="ag-form-group">
                                 <label class="ag-label">Sex</label>
-                                <select class="ag-select" name="sex">
-                                    <option value="">Select…</option>
+                                <select class="ag-select" name="gender">
                                     <option value="Male">Male</option>
                                     <option value="Female">Female</option>
                                 </select>
                             </div>
                             <div class="ag-form-group">
                                 <label class="ag-label">Initial weight (kg)</label>
-                                <input class="ag-input" type="number" step="0.1" name="weight" placeholder="0.0" />
+                                <input class="ag-input" type="number" step="0.01" name="initial_weight"
+                                    placeholder="0.00" required />
                             </div>
                         </div>
 
                         <div class="ag-form-group ag-mb-md">
                             <label class="ag-label">Health status</label>
-                            <select class="ag-select" name="health_status">
-                                <option value="Healthy">Healthy</option>
-                                <option value="Monitor">Needs monitoring</option>
-                                <option value="Sick">Sick</option>
-                            </select>
-                        </div>
-
-                        <div class="ag-form-group ag-mb-md">
-                            <label class="ag-label">Notes</label>
-                            <textarea class="ag-textarea" name="notes"
-                                placeholder="Any additional notes about this animal…"></textarea>
+                            <input class="ag-input" type="text" name="health_status"
+                                placeholder="e.g. Healthy, Vaccinated" required>
                         </div>
 
                         <div class="ag-flex ag-gap-sm">
@@ -155,34 +139,31 @@ $current_page = 'addAnimals';
                 <div class="ag-side-title">Tips</div>
                 <div class="ag-activity-item">
                     <div class="ag-activity-dot new"></div>
-                    <div>
-                        <div class="ag-activity-text">Tag IDs help you track animals across logs and orders.</div>
-                    </div>
-                </div>
-                <div class="ag-activity-item">
-                    <div class="ag-activity-dot"></div>
-                    <div>
-                        <div class="ag-activity-text">Record initial weight right after purchase or birth.</div>
-                    </div>
+                    <div class="ag-activity-text">Ensure your Location/Pens are set up in "My Farm" before adding
+                        animals.</div>
                 </div>
             </div>
 
             <div class="ag-side-card">
-                <div class="ag-side-title">Recently Added</div>
+                <div class="ag-side-title">Your Recent Livestock</div>
                 <?php
-                $recentStmt = $conn->query("SELECT livestock_id, tag_number, species, date_registered FROM livestock ORDER BY date_registered DESC LIMIT 3");
+                $recentStmt = $pdo->prepare("SELECT l.livestock_id, c.category_name, l.date_created 
+                                            FROM livestock l 
+                                            JOIN category c ON l.category_id = c.category_id 
+                                            WHERE l.farmer_id = ? 
+                                            ORDER BY l.date_created DESC LIMIT 3");
+                $recentStmt->execute([$_SESSION['farmer_id']]);
                 while ($row = $recentStmt->fetch()):
                 ?>
                 <div class="ag-meta-row">
-                    <span class="ag-meta-lbl"><?= htmlspecialchars($row['tag_number']) ?> —
-                        <?= htmlspecialchars($row['species']) ?></span>
-                    <span class="ag-meta-val">New</span>
+                    <span class="ag-meta-lbl">#<?= $row['livestock_id'] ?> —
+                        <?= htmlspecialchars($row['category_name']) ?></span>
+                    <span class="ag-meta-val">Added</span>
                 </div>
                 <?php endwhile; ?>
             </div>
         </aside>
     </div>
-
 </body>
 
 </html>
