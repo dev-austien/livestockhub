@@ -7,7 +7,7 @@
 // 1. Connection Details
 $host     = "127.0.0.1";  // Use IP instead of 'localhost' for speed
 $port     = "3306";       // Default MySQL port (Change to 3307 if 3306 is blocked)
-$dbname   = "livestock_db";
+$dbname   = "livestuchub_db";
 $username = "root";
 $password = "";           // Default XAMPP password is empty
 $charset  = "utf8mb4";    // Supports all characters and emojis
