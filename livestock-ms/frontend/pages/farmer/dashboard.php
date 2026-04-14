@@ -2,6 +2,9 @@
 session_start();
 require_once '../../../backend/db_config.php';
 
+/* -----------------------------
+   AUTH CHECK
+------------------------------*/
 if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'farmer') {
     header("Location: ../auth/login.php");
     exit();
@@ -10,7 +13,7 @@ if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'farmer') {
 $user_id = $_SESSION['user_id'] ?? null;
 
 /* -----------------------------
-   USER INFO
+   USER DATA
 ------------------------------*/
 $stmt = $pdo->prepare("SELECT full_name FROM users WHERE id = :id");
 $stmt->execute([':id' => $user_id]);
@@ -25,7 +28,7 @@ $initials = strtoupper(
 );
 
 /* -----------------------------
-   FARM INFO
+   FARM DATA
 ------------------------------*/
 $stmt = $pdo->prepare("SELECT farm_id FROM farms WHERE user_id = :id LIMIT 1");
 $stmt->execute([':id' => $user_id]);
@@ -37,6 +40,7 @@ $farm_id = $farm['farm_id'] ?? null;
    TOTAL ANIMALS
 ------------------------------*/
 $total_animals = 0;
+
 if ($farm_id) {
     $stmt = $pdo->prepare("
         SELECT COUNT(*) as total
@@ -80,9 +84,7 @@ $recent_livestock = [];
 if ($farm_id) {
     $stmt = $pdo->prepare("
         SELECT
-            l.livestock_id,
             l.tag_number,
-            l.name,
             l.species,
             l.breed,
             l.weight,
@@ -97,33 +99,32 @@ if ($farm_id) {
     $stmt->execute([':farm_id' => $farm_id]);
     $recent_livestock = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
-
-$page_title = 'Dashboard';
-$current_page = 'dashboard';
 ?>
+
 <!doctype html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AgriHub — Dashboard</title>
+    <title>AgriHub Dashboard</title>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=Playfair+Display:ital,wght@0,600;1,500&display=swap"
-        rel="stylesheet" />
+    <!-- FIXED CSS PATH -->
     <link rel="stylesheet" href="/livestock-ms/frontend/css/agrihub.css">
 </head>
 
 <body>
 
-    <?php include '../includes/nav.php'; ?>
+    <?php
+// FIXED NAV INCLUDE (NO BROKEN PATHS)
+include $_SERVER['DOCUMENT_ROOT'] . '/livestock-ms/frontend/includes/nav.php';
+?>
 
     <div class="ag-page">
+
         <main class="ag-main">
 
+            <!-- HEADER -->
             <div class="ag-page-header">
                 <div class="ag-eyebrow">
                     Good morning, <?= htmlspecialchars($display_name) ?>
@@ -137,19 +138,16 @@ $current_page = 'dashboard';
                 <div class="ag-stat">
                     <div class="ag-stat-lbl">Total Animals</div>
                     <div class="ag-stat-val"><?= $total_animals ?></div>
-                    <div class="ag-stat-delta">Live count</div>
                 </div>
 
                 <div class="ag-stat">
                     <div class="ag-stat-lbl">Pending Orders</div>
                     <div class="ag-stat-val"><?= $pending_orders ?></div>
-                    <div class="ag-stat-delta warn">Needs attention</div>
                 </div>
 
                 <div class="ag-stat">
                     <div class="ag-stat-lbl">Revenue (Mo.)</div>
                     <div class="ag-stat-val">₱<?= number_format($revenue) ?></div>
-                    <div class="ag-stat-delta">Completed orders</div>
                 </div>
 
             </div>
@@ -157,8 +155,7 @@ $current_page = 'dashboard';
             <!-- TABLE -->
             <div class="ag-card">
                 <div class="ag-card-header">
-                    <span class="ag-card-title">Recent livestock</span>
-                    <span class="ag-pill">Live</span>
+                    <span class="ag-card-title">Recent Livestock</span>
                 </div>
 
                 <table class="ag-table">
@@ -173,18 +170,15 @@ $current_page = 'dashboard';
                     </thead>
 
                     <tbody>
+
                         <?php if (!empty($recent_livestock)): ?>
                         <?php foreach ($recent_livestock as $row): ?>
                         <tr>
-                            <td class="muted"><?= htmlspecialchars($row['tag_number']) ?></td>
-                            <td class="strong"><?= htmlspecialchars($row['species']) ?></td>
-                            <td class="muted"><?= htmlspecialchars($row['breed']) ?></td>
+                            <td><?= htmlspecialchars($row['tag_number']) ?></td>
+                            <td><?= htmlspecialchars($row['species']) ?></td>
+                            <td><?= htmlspecialchars($row['breed']) ?></td>
                             <td><?= htmlspecialchars($row['weight']) ?> kg</td>
-                            <td>
-                                <span class="ag-tag">
-                                    <?= htmlspecialchars($row['health_status']) ?>
-                                </span>
-                            </td>
+                            <td><?= htmlspecialchars($row['health_status']) ?></td>
                         </tr>
                         <?php endforeach; ?>
                         <?php else: ?>
@@ -192,8 +186,8 @@ $current_page = 'dashboard';
                             <td colspan="5" style="text-align:center;">No livestock found</td>
                         </tr>
                         <?php endif; ?>
-                    </tbody>
 
+                    </tbody>
                 </table>
             </div>
 
@@ -203,6 +197,7 @@ $current_page = 'dashboard';
         <aside class="ag-sidebar">
 
             <div class="ag-side-card">
+
                 <div class="ag-side-title">Farmer profile</div>
 
                 <div class="ag-profile-row">
@@ -216,18 +211,6 @@ $current_page = 'dashboard';
                         </div>
                         <div class="ag-profile-role">Verified Farmer</div>
                     </div>
-                </div>
-
-                <div class="ag-divider"></div>
-
-                <div class="ag-meta-row">
-                    <span class="ag-meta-lbl">Farm ID</span>
-                    <span class="ag-meta-val"><?= $farm_id ?? 'N/A' ?></span>
-                </div>
-
-                <div class="ag-meta-row">
-                    <span class="ag-meta-lbl">Status</span>
-                    <span class="ag-meta-val">Active</span>
                 </div>
 
             </div>
