@@ -1,5 +1,5 @@
 <?php
-require_once 'db_config.php';
+require_once 'backend/shared/db_config';
 session_start();
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
