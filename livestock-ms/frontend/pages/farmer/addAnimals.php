@@ -1,8 +1,44 @@
 <?php
+session_start();
 require_once '../../../backend/db_config.php';
+
+// 1. Security & Role Check
 if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'farmer') {
-    header("Location: ../auth/login.php"); exit();
+    header("Location: ../auth/login.php"); 
+    exit();
 }
+
+$message = "";
+$messageType = "";
+
+// 2. Handle Form Submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Collect and sanitize input
+    $animal_type   = $_POST['animal_type'] ?? '';
+    $breed         = $_POST['breed'] ?? '';
+    $tag_id        = $_POST['tag_id'] ?? '';
+    $dob           = $_POST['dob'] ?? null;
+    $sex           = $_POST['sex'] ?? '';
+    $weight        = $_POST['weight'] ?? 0;
+    $health_status = $_POST['health_status'] ?? 'healthy';
+    $notes         = $_POST['notes'] ?? '';
+    $farmer_id     = $_SESSION['user_id'] ?? 1; // Assuming user_id is in session
+
+    try {
+        $sql = "INSERT INTO livestock (animal_id, species, breed, date_of_birth, sex, weight, health_status, notes, farmer_id, created_at) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+        
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([$tag_id, $animal_type, $breed, $dob, $sex, $weight, $health_status, $notes, $farmer_id]);
+
+        $message = "Animal registered successfully!";
+        $messageType = "ok";
+    } catch (PDOException $e) {
+        $message = "Error: Could not register animal. " . $e->getMessage();
+        $messageType = "danger";
+    }
+}
+
 $page_title   = 'Add Animals';
 $current_page = 'addAnimals';
 ?>
@@ -18,12 +54,12 @@ $current_page = 'addAnimals';
     <link
         href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=Playfair+Display:ital,wght@0,600;1,500&display=swap"
         rel="stylesheet" />
-    <link rel="stylesheet" href="/livestock-ms/frontend/css/agrihub.css" />
+    <link rel="stylesheet" href="../../css/agrihub.css" />
 </head>
 
 <body>
 
-    <?php include '../includes/nav.php'; ?>
+    <?php include '../../css/include.css/nav.php'; ?>
 
     <div class="ag-page">
         <main class="ag-main">
@@ -31,6 +67,13 @@ $current_page = 'addAnimals';
                 <div class="ag-eyebrow">Farmer portal</div>
                 <h1 class="ag-page-title">Register a <em>new animal.</em></h1>
             </div>
+
+            <?php if ($message): ?>
+            <div class="ag-tag <?= $messageType ?>"
+                style="margin-bottom: 20px; width: 100%; padding: 10px; text-align: center;">
+                <?= htmlspecialchars($message) ?>
+            </div>
+            <?php endif; ?>
 
             <div class="ag-card">
                 <div class="ag-card-header">
@@ -43,12 +86,12 @@ $current_page = 'addAnimals';
                                 <label class="ag-label">Animal type</label>
                                 <select class="ag-select" name="animal_type" required>
                                     <option value="">Select type…</option>
-                                    <option>Cattle</option>
-                                    <option>Goat</option>
-                                    <option>Pig</option>
-                                    <option>Chicken</option>
-                                    <option>Sheep</option>
-                                    <option>Other</option>
+                                    <option value="Cattle">Cattle</option>
+                                    <option value="Goat">Goat</option>
+                                    <option value="Pig">Pig</option>
+                                    <option value="Chicken">Chicken</option>
+                                    <option value="Sheep">Sheep</option>
+                                    <option value="Other">Other</option>
                                 </select>
                             </div>
                             <div class="ag-form-group">
@@ -61,7 +104,7 @@ $current_page = 'addAnimals';
                         <div class="ag-form-grid ag-mb-md">
                             <div class="ag-form-group">
                                 <label class="ag-label">Tag / ID</label>
-                                <input class="ag-input" type="text" name="tag_id" placeholder="e.g. C-043" />
+                                <input class="ag-input" type="text" name="tag_id" placeholder="e.g. C-043" required />
                             </div>
                             <div class="ag-form-group">
                                 <label class="ag-label">Date of birth</label>
@@ -74,8 +117,8 @@ $current_page = 'addAnimals';
                                 <label class="ag-label">Sex</label>
                                 <select class="ag-select" name="sex">
                                     <option value="">Select…</option>
-                                    <option>Male</option>
-                                    <option>Female</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
                                 </select>
                             </div>
                             <div class="ag-form-group">
@@ -87,9 +130,9 @@ $current_page = 'addAnimals';
                         <div class="ag-form-group ag-mb-md">
                             <label class="ag-label">Health status</label>
                             <select class="ag-select" name="health_status">
-                                <option value="healthy">Healthy</option>
-                                <option value="monitor">Needs monitoring</option>
-                                <option value="sick">Sick</option>
+                                <option value="Healthy">Healthy</option>
+                                <option value="Monitor">Needs monitoring</option>
+                                <option value="Sick">Sick</option>
                             </select>
                         </div>
 
@@ -120,25 +163,24 @@ $current_page = 'addAnimals';
                 <div class="ag-activity-item">
                     <div class="ag-activity-dot"></div>
                     <div>
-                        <div class="ag-activity-text">Record the initial weight right after purchase or birth.</div>
-                    </div>
-                </div>
-                <div class="ag-activity-item">
-                    <div class="ag-activity-dot"></div>
-                    <div>
-                        <div class="ag-activity-text">Use the notes field for vaccination or medication history.</div>
+                        <div class="ag-activity-text">Record initial weight right after purchase or birth.</div>
                     </div>
                 </div>
             </div>
 
             <div class="ag-side-card">
-                <div class="ag-side-title">Recent additions</div>
-                <div class="ag-meta-row"><span class="ag-meta-lbl">C-042 — Cattle</span><span class="ag-meta-val">2d
-                        ago</span></div>
-                <div class="ag-meta-row"><span class="ag-meta-lbl">H-103 — Chicken</span><span class="ag-meta-val">5d
-                        ago</span></div>
-                <div class="ag-meta-row"><span class="ag-meta-lbl">G-019 — Goat</span><span class="ag-meta-val">1w
-                        ago</span></div>
+                <div class="ag-side-title">Recently Added</div>
+                <?php
+                // Fetch last 3 added animals for the sidebar
+                $recentStmt = $conn->query("SELECT animal_id, species, created_at FROM livestock ORDER BY created_at DESC LIMIT 3");
+                while ($row = $recentStmt->fetch()):
+                ?>
+                <div class="ag-meta-row">
+                    <span class="ag-meta-lbl"><?= htmlspecialchars($row['animal_id']) ?> —
+                        <?= htmlspecialchars($row['species']) ?></span>
+                    <span class="ag-meta-val">New</span>
+                </div>
+                <?php endwhile; ?>
             </div>
         </aside>
     </div>
