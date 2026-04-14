@@ -27,14 +27,14 @@ try {
     $healthStmt = $conn->query("SELECT 
         SUM(CASE WHEN health_status = 'Healthy' THEN 1 ELSE 0 END) as healthy,
         SUM(CASE WHEN health_status = 'Monitor' THEN 1 ELSE 0 END) as monitor,
-        SUM(CASE WHEN health_status = 'Critical' THEN 1 ELSE 0 END) as critical
+        SUM(CASE WHEN health_status = 'Sick' THEN 1 ELSE 0 END) as critical
         FROM livestock");
     $health = $healthStmt->fetch();
 
     // C. Fetch All Livestock for the Table
-    $listStmt = $conn->query("SELECT animal_id, species, breed, age, weight, health_status 
+    $listStmt = $conn->query("SELECT livestock_id, tag_number, species, breed_name, date_of_birth, weight, health_status, date_registered 
                                FROM livestock 
-                               ORDER BY created_at DESC");
+                               ORDER BY date_registered DESC");
     $all_livestock = $listStmt->fetchAll();
 
 } catch (PDOException $e) {
@@ -105,10 +105,10 @@ $current_page = 'mylivestock';
                 <table class="ag-table">
                     <thead>
                         <tr>
-                            <th>ID</th>
+                            <th>Tag ID</th>
                             <th>Type</th>
                             <th>Breed</th>
-                            <th>Age</th>
+                            <th>Date of Birth</th>
                             <th>Weight</th>
                             <th>Status</th>
                             <th>Action</th>
@@ -122,20 +122,21 @@ $current_page = 'mylivestock';
                         <?php else: ?>
                         <?php foreach ($all_livestock as $animal): ?>
                         <tr>
-                            <td class="muted"><?= htmlspecialchars($animal['animal_id']) ?></td>
+                            <td class="muted"><?= htmlspecialchars($animal['tag_number']) ?></td>
                             <td class="strong"><?= htmlspecialchars($animal['species']) ?></td>
-                            <td class="muted"><?= htmlspecialchars($animal['breed']) ?></td>
-                            <td><?= htmlspecialchars($animal['age']) ?></td>
+                            <td class="muted"><?= htmlspecialchars($animal['breed_name']) ?></td>
+                            <td><?= $animal['date_of_birth'] ? date('M d, Y', strtotime($animal['date_of_birth'])) : '—' ?>
+                            </td>
                             <td><?= htmlspecialchars($animal['weight']) ?> kg</td>
                             <td>
                                 <?php 
-                                        $status = strtolower($animal['health_status']);
-                                        $tagClass = ($status == 'healthy') ? 'ok' : (($status == 'monitor') ? 'warn' : 'danger');
-                                    ?>
+                                    $status = strtolower($animal['health_status']);
+                                    $tagClass = ($status == 'healthy') ? 'ok' : (($status == 'monitor') ? 'warn' : 'danger');
+                                ?>
                                 <span
                                     class="ag-tag <?= $tagClass ?>"><?= htmlspecialchars($animal['health_status']) ?></span>
                             </td>
-                            <td><a href="viewAnimal.php?id=<?= $animal['animal_id'] ?>" class="ag-btn ag-btn-ghost"
+                            <td><a href="viewAnimal.php?id=<?= $animal['livestock_id'] ?>" class="ag-btn ag-btn-ghost"
                                     style="font-size:11px;padding:4px 10px;">View</a></td>
                         </tr>
                         <?php endforeach; ?>
@@ -178,7 +179,7 @@ $current_page = 'mylivestock';
                     <?php 
                         $max = !empty($counts) ? max($counts) : 1; 
                         foreach ($counts as $label => $val): 
-                            $height = ($val / $max) * 50; // Dynamic bar height
+                            $height = ($val / $max) * 50;
                     ?>
                     <div class="ag-bar-col">
                         <div class="ag-bar <?= $val == $max ? 'hi' : '' ?>" style="height:<?= $height ?>px;"></div>
