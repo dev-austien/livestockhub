@@ -1,8 +1,47 @@
 <?php
+session_start();
 require_once '../../../backend/db_config.php';
+
+/**
+ * 1. Security & Role Check
+ */
 if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'farmer') {
-    header("Location: ../auth/login.php"); exit();
+    header("Location: ../auth/login.php"); 
+    exit();
 }
+
+/**
+ * 2. Fetch Real Data from livestuchub_db
+ */
+try {
+    // A. Fetch Counts by Category (for the 4 stat cards)
+    $categories = ['Cattle', 'Goat', 'Pig', 'Chicken'];
+    $counts = [];
+    foreach ($categories as $cat) {
+        $stmt = $conn->prepare("SELECT COUNT(*) FROM livestock WHERE species = ?");
+        $stmt->execute([$cat]);
+        $counts[$cat] = $stmt->fetchColumn();
+    }
+
+    // B. Fetch Health Summary (for sidebar)
+    $healthStmt = $conn->query("SELECT 
+        SUM(CASE WHEN health_status = 'Healthy' THEN 1 ELSE 0 END) as healthy,
+        SUM(CASE WHEN health_status = 'Monitor' THEN 1 ELSE 0 END) as monitor,
+        SUM(CASE WHEN health_status = 'Critical' THEN 1 ELSE 0 END) as critical
+        FROM livestock");
+    $health = $healthStmt->fetch();
+
+    // C. Fetch All Livestock for the Table
+    $listStmt = $conn->query("SELECT animal_id, species, breed, age, weight, health_status 
+                               FROM livestock 
+                               ORDER BY created_at DESC");
+    $all_livestock = $listStmt->fetchAll();
+
+} catch (PDOException $e) {
+    error_log("Livestock Page Error: " . $e->getMessage());
+    $all_livestock = [];
+}
+
 $page_title   = 'My Livestock';
 $current_page = 'mylivestock';
 ?>
@@ -18,12 +57,12 @@ $current_page = 'mylivestock';
     <link
         href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=Playfair+Display:ital,wght@0,600;1,500&display=swap"
         rel="stylesheet" />
-    <link rel="stylesheet" href="/livestock-ms/frontend/css/agrihub.css" />
+    <link rel="stylesheet" href="../../css/agrihub.css" />
 </head>
 
 <body>
 
-    <?php include '../includes/nav.php'; ?>
+    <?php include '../../css/include.css/nav.php'; ?>
 
     <div class="ag-page">
         <main class="ag-main">
@@ -35,23 +74,23 @@ $current_page = 'mylivestock';
             <div class="ag-stats ag-stats-4 ag-mb-md">
                 <div class="ag-stat">
                     <div class="ag-stat-lbl">Cattle</div>
-                    <div class="ag-stat-val">42</div>
-                    <div class="ag-stat-delta">+2 this month</div>
+                    <div class="ag-stat-val"><?= $counts['Cattle'] ?></div>
+                    <div class="ag-stat-delta">Registered</div>
                 </div>
                 <div class="ag-stat">
                     <div class="ag-stat-lbl">Goats</div>
-                    <div class="ag-stat-val">38</div>
-                    <div class="ag-stat-delta ok">Stable</div>
+                    <div class="ag-stat-val"><?= $counts['Goat'] ?></div>
+                    <div class="ag-stat-delta">Registered</div>
                 </div>
                 <div class="ag-stat">
                     <div class="ag-stat-lbl">Pigs</div>
-                    <div class="ag-stat-val">34</div>
-                    <div class="ag-stat-delta warn">1 monitoring</div>
+                    <div class="ag-stat-val"><?= $counts['Pig'] ?></div>
+                    <div class="ag-stat-delta">Registered</div>
                 </div>
                 <div class="ag-stat">
                     <div class="ag-stat-lbl">Chickens</div>
-                    <div class="ag-stat-val">34</div>
-                    <div class="ag-stat-delta ok">Healthy</div>
+                    <div class="ag-stat-val"><?= $counts['Chicken'] ?></div>
+                    <div class="ag-stat-delta">Registered</div>
                 </div>
             </div>
 
@@ -76,66 +115,31 @@ $current_page = 'mylivestock';
                         </tr>
                     </thead>
                     <tbody>
+                        <?php if (empty($all_livestock)): ?>
                         <tr>
-                            <td class="muted">C-041</td>
-                            <td class="strong">Cattle</td>
-                            <td class="muted">Brown Angus</td>
-                            <td>3 yr</td>
-                            <td>312 kg</td>
-                            <td><span class="ag-tag ok">Healthy</span></td>
-                            <td><a href="#" class="ag-btn ag-btn-ghost"
+                            <td colspan="7" style="text-align:center; padding: 20px;">No animals found.</td>
+                        </tr>
+                        <?php else: ?>
+                        <?php foreach ($all_livestock as $animal): ?>
+                        <tr>
+                            <td class="muted"><?= htmlspecialchars($animal['animal_id']) ?></td>
+                            <td class="strong"><?= htmlspecialchars($animal['species']) ?></td>
+                            <td class="muted"><?= htmlspecialchars($animal['breed']) ?></td>
+                            <td><?= htmlspecialchars($animal['age']) ?></td>
+                            <td><?= htmlspecialchars($animal['weight']) ?> kg</td>
+                            <td>
+                                <?php 
+                                        $status = strtolower($animal['health_status']);
+                                        $tagClass = ($status == 'healthy') ? 'ok' : (($status == 'monitor') ? 'warn' : 'danger');
+                                    ?>
+                                <span
+                                    class="ag-tag <?= $tagClass ?>"><?= htmlspecialchars($animal['health_status']) ?></span>
+                            </td>
+                            <td><a href="viewAnimal.php?id=<?= $animal['animal_id'] ?>" class="ag-btn ag-btn-ghost"
                                     style="font-size:11px;padding:4px 10px;">View</a></td>
                         </tr>
-                        <tr>
-                            <td class="muted">C-042</td>
-                            <td class="strong">Cattle</td>
-                            <td class="muted">Brahman</td>
-                            <td>2 yr</td>
-                            <td>280 kg</td>
-                            <td><span class="ag-tag ok">Healthy</span></td>
-                            <td><a href="#" class="ag-btn ag-btn-ghost"
-                                    style="font-size:11px;padding:4px 10px;">View</a></td>
-                        </tr>
-                        <tr>
-                            <td class="muted">G-018</td>
-                            <td class="strong">Goat</td>
-                            <td class="muted">Nubian</td>
-                            <td>1 yr</td>
-                            <td>48 kg</td>
-                            <td><span class="ag-tag warn">Monitor</span></td>
-                            <td><a href="#" class="ag-btn ag-btn-ghost"
-                                    style="font-size:11px;padding:4px 10px;">View</a></td>
-                        </tr>
-                        <tr>
-                            <td class="muted">P-029</td>
-                            <td class="strong">Pig</td>
-                            <td class="muted">Large White</td>
-                            <td>8 mo</td>
-                            <td>90 kg</td>
-                            <td><span class="ag-tag ok">Healthy</span></td>
-                            <td><a href="#" class="ag-btn ag-btn-ghost"
-                                    style="font-size:11px;padding:4px 10px;">View</a></td>
-                        </tr>
-                        <tr>
-                            <td class="muted">H-102</td>
-                            <td class="strong">Chicken</td>
-                            <td class="muted">Broiler</td>
-                            <td>4 mo</td>
-                            <td>2.4 kg</td>
-                            <td><span class="ag-tag info">Weigh Due</span></td>
-                            <td><a href="#" class="ag-btn ag-btn-ghost"
-                                    style="font-size:11px;padding:4px 10px;">View</a></td>
-                        </tr>
-                        <tr>
-                            <td class="muted">H-103</td>
-                            <td class="strong">Chicken</td>
-                            <td class="muted">Broiler</td>
-                            <td>4 mo</td>
-                            <td>2.2 kg</td>
-                            <td><span class="ag-tag ok">Healthy</span></td>
-                            <td><a href="#" class="ag-btn ag-btn-ghost"
-                                    style="font-size:11px;padding:4px 10px;">View</a></td>
-                        </tr>
+                        <?php endforeach; ?>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -154,35 +158,33 @@ $current_page = 'mylivestock';
 
             <div class="ag-side-card">
                 <div class="ag-side-title">Health summary</div>
-                <div class="ag-meta-row"><span class="ag-meta-lbl">Healthy</span><span class="ag-meta-val ok">144</span>
+                <div class="ag-meta-row">
+                    <span class="ag-meta-lbl">Healthy</span>
+                    <span class="ag-meta-val ok"><?= $health['healthy'] ?? 0 ?></span>
                 </div>
-                <div class="ag-meta-row"><span class="ag-meta-lbl">Monitoring</span><span
-                        class="ag-meta-val warn">2</span></div>
-                <div class="ag-meta-row"><span class="ag-meta-lbl">Critical</span><span
-                        class="ag-meta-val danger">0</span></div>
-                <div class="ag-meta-row"><span class="ag-meta-lbl">Weigh due</span><span class="ag-meta-val">2</span>
+                <div class="ag-meta-row">
+                    <span class="ag-meta-lbl">Monitoring</span>
+                    <span class="ag-meta-val warn"><?= $health['monitor'] ?? 0 ?></span>
+                </div>
+                <div class="ag-meta-row">
+                    <span class="ag-meta-lbl">Critical</span>
+                    <span class="ag-meta-val danger"><?= $health['critical'] ?? 0 ?></span>
                 </div>
             </div>
 
             <div class="ag-side-card">
-                <div class="ag-side-title">By type</div>
+                <div class="ag-side-title">Inventory Split</div>
                 <div class="ag-bar-group">
+                    <?php 
+                        $max = !empty($counts) ? max($counts) : 1; 
+                        foreach ($counts as $label => $val): 
+                            $height = ($val / $max) * 50; // Dynamic bar height
+                    ?>
                     <div class="ag-bar-col">
-                        <div class="ag-bar hi" style="height:42px;"></div>
-                        <div class="ag-bar-lbl">Cattle</div>
+                        <div class="ag-bar <?= $val == $max ? 'hi' : '' ?>" style="height:<?= $height ?>px;"></div>
+                        <div class="ag-bar-lbl"><?= substr($label, 0, 4) ?></div>
                     </div>
-                    <div class="ag-bar-col">
-                        <div class="ag-bar hi" style="height:36px;"></div>
-                        <div class="ag-bar-lbl">Goat</div>
-                    </div>
-                    <div class="ag-bar-col">
-                        <div class="ag-bar" style="height:32px;"></div>
-                        <div class="ag-bar-lbl">Pig</div>
-                    </div>
-                    <div class="ag-bar-col">
-                        <div class="ag-bar" style="height:32px;"></div>
-                        <div class="ag-bar-lbl">Chkn</div>
-                    </div>
+                    <?php endforeach; ?>
                 </div>
             </div>
         </aside>
