@@ -13,11 +13,17 @@ $user_id = $_SESSION['user_id'];
 try {
     // 2. Fetch Recent Livestock
     // We JOIN with farms to ensure we only get livestock belonging to THIS farmer
-   $query = "SELECT l.livestock_id, l.tag_number, l.name, l.species, l.breed_name, l.health_status, l.date_registered 
+   $query = "SELECT 
+            l.livestock_id,
+            l.tag_number,
+            l.name,
+            l.species,
+            l.breed,
+            l.sex,
+            l.health_status,
+            l.date_registered
           FROM livestock l
-          JOIN farms f ON l.farm_id = f.farm_id
-          WHERE f.farmer_id = :user_id
-          ORDER BY l.date_registered DESC 
+          ORDER BY l.date_registered DESC
           LIMIT 5";
 
     $stmt = $pdo->prepare($query);
