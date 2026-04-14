@@ -31,6 +31,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         header("Location: ../frontend/pages/auth/login.php?msg=RegistrationSuccess");
     } catch (Exception $e) {
         $pdo->rollBack();
-        header("Location: ../frontend/pages/auth/register.php?error=" . urlencode($e->getMessage()));
+        header("Location: ../../frontend/pages/auth/register.php?error=" . urlencode($e->getMessage()));
     }
 }
