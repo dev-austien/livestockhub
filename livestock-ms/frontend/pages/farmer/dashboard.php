@@ -11,26 +11,23 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 
 try {
-    // 2. Fetch Recent Livestock
-    // We JOIN with farms to ensure we only get livestock belonging to THIS farmer
-   $query = "SELECT 
-            l.livestock_id,
-            l.tag_number,
-            l.name,
-            l.species,
-            l.breed,
-            l.sex,
-            l.health_status,
-            l.date_registered
-          FROM livestock l
-          ORDER BY l.date_registered DESC
-          LIMIT 5";
+    $query = "SELECT 
+                l.livestock_id,
+                l.tag_number,
+                l.name,
+                l.species,
+                l.breed,
+                l.sex,
+                l.health_status,
+                l.date_registered
+              FROM livestock l
+              ORDER BY l.date_registered DESC
+              LIMIT 5";
 
-   $stmt = $pdo->prepare($query);
-$stmt->execute([
-    ':pen_id' => $pen_id,
-    ':status' => $status
-]);
+    $stmt = $pdo->prepare($query);
+    $stmt->execute();
+
+    $recent_livestock = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 } catch (PDOException $e) {
     die("Database Error: " . $e->getMessage());
