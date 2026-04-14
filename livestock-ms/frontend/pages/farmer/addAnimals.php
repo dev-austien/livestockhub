@@ -25,11 +25,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $farmer_id     = $_SESSION['user_id'] ?? 1; // Assuming user_id is in session
 
     try {
-        $sql = "INSERT INTO livestock (animal_id, species, breed, date_of_birth, sex, weight, health_status, notes, farmer_id, created_at) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
-        
-        $stmt = $conn->prepare($sql);
-        $stmt->execute([$tag_id, $animal_type, $breed, $dob, $sex, $weight, $health_status, $notes, $farmer_id]);
+        $sql = "INSERT INTO livestock (tag_number, species, breed_name, date_of_birth, sex, weight, health_status, notes, farmer_id, date_registered) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+
+$stmt = $conn->prepare($sql);
+$stmt->execute([$tag_id, $animal_type, $breed, $dob, $sex, $weight, $health_status, $notes, $farmer_id]);
 
         $message = "Animal registered successfully!";
         $messageType = "ok";
