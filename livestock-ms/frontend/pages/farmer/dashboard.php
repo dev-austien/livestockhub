@@ -1,8 +1,18 @@
 <?php
+session_start(); // Crucial for session variables to work
 require_once '../../../backend/db_config.php';
+
+// 1. Role Check
 if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'farmer') {
-    header("Location: ../auth/login.php"); exit();
+    header("Location: ../auth/login.php"); 
+    exit();
 }
+
+// 2. Placeholder for fetching user data (since you used them below)
+// In a real app, you'd fetch these from your $db connection
+$display_name = $_SESSION['user_name'] ?? 'Farmer'; 
+$initials     = strtoupper(substr($display_name, 0, 2));
+
 $page_title   = 'Dashboard';
 $current_page = 'dashboard';
 ?>
