@@ -1,6 +1,6 @@
 <?php
 $host = 'localhost';
-$dbname = 'livestock_ms'; // Ensure this matches your DB name
+$dbname = 'livestuchub_db'; // Ensure this matches your DB name
 $username = 'root';
 $password = '';
 
