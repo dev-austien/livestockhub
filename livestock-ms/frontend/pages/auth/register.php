@@ -15,7 +15,7 @@
         <h2>Create Account</h2>
         <p style="text-align: center; color: #666; font-size: 0.9rem;">Join the AgriStock community</p>
 
-        <form action="../../../backend/auth/register_process.php" method="POST">
+        <form action="/livestockhub/livestock-ms/backend/auth/register_process.php" method="POST">
             <div style="display: flex; gap: 10px; flex-direction: column;">
                 <div style="flex: 1;">
                     <label for="first_name">First Name</label>
