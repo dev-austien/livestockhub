@@ -94,7 +94,10 @@ $recent_livestock = $stmt->fetchAll();
 
 <body>
 
-    <?php include '../../css/include.css/nav.php'; ?>
+    <?php
+    $page_title = "Farmer Dashboard"; 
+    include '../../css/include.css/nav.php'; 
+    ?>
 
     <div class="ag-page">
         <main class="ag-main">
