@@ -55,7 +55,7 @@ $stmt = $pdo->prepare("
     JOIN livestock l ON o.livestock_id = l.livestock_id
     WHERE l.farmer_id = ? 
     AND o.status = 'Completed'
-    AND MONTH(o.order_date) = MONTH(CURRENT_DATE())
+    AND MONTH(o.created_at) = MONTH(CURRENT_DATE())
 ");
 $stmt->execute([$farmer_id]);
 $revenue = $stmt->fetch()['revenue'] ?? 0;
