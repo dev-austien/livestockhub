@@ -1,145 +1,200 @@
-<?php
-session_start();
-require_once '../../../backend/shared/db_config.php';
-
-// 1. Auth Check
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'Farmer') {
-    header("Location: ../auth/login.php"); 
-    exit();
-}
-
-$farmer_id = $_SESSION['farmer_id'];
-
-// 2. Fetch Locations (Pens/Areas) for this Farmer
-// We JOIN with livestock to calculate 'occupied' counts dynamically
-$locStmt = $pdo->prepare("
-    SELECT 
-        l.location_id, 
-        l.location_name, 
-        l.location_type, 
-        l.capacity,
-        (SELECT COUNT(*) FROM livestock WHERE location_id = l.location_id) as occupied_count
-    FROM location l
-    WHERE l.farmer_id = ?
-");
-$locStmt->execute([$farmer_id]);
-$locations = $locStmt->fetchAll();
-
-// 3. Calculate Stats for Sidebar
-$totalCapacity = 0;
-$totalOccupied = 0;
-foreach ($locations as $loc) {
-    $totalCapacity += $loc['capacity'];
-    $totalOccupied += $loc['occupied_count'];
-}
-$utilization = ($totalCapacity > 0) ? round(($totalOccupied / $totalCapacity) * 100) : 0;
-
-$page_title   = 'My Farm';
-$current_page = 'myFarm';
-?>
-<!doctype html>
+<?php $navRole = 'farmer'; ?>
+<!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AgriHub — My Farm</title>
-    <link rel="stylesheet" href="../../css/agrihub.css" />
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Farm — LivestoChub</title>
+  <link rel="stylesheet" href="../../css/main.css">
 </head>
-
 <body>
+<?php include '../../includes/nav.php'; ?>
+<div class="app-layout">
+<div class="main-content" id="mainContent">
+  <div class="page-header">
+    <div><div class="page-title">My Farm</div><div class="page-subtitle">Manage farm profile and locations</div></div>
+    <button class="btn btn-primary" onclick="openAddLocation()">+ Add Location</button>
+  </div>
 
-    <?php include '../../css/include.css/nav.php'; ?>
-
-    <div class="ag-page">
-        <main class="ag-main">
-            <div class="ag-page-header">
-                <div class="ag-eyebrow">Farmer portal</div>
-                <h1 class="ag-page-title">Farm <em>infrastructure.</em></h1>
-            </div>
-
-            <div class="ag-card">
-                <div class="ag-card-header">
-                    <span class="ag-card-title">Pen / Area breakdown</span>
-                    <button class="ag-btn ag-btn-secondary" style="font-size:12px;padding:6px 14px;">+ Add New
-                        Area</button>
-                </div>
-                <div class="ag-card-body">
-                    <table class="ag-table">
-                        <thead>
-                            <tr>
-                                <th>Area Name</th>
-                                <th>Type</th>
-                                <th>Capacity</th>
-                                <th>Occupied</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (empty($locations)): ?>
-                            <tr>
-                                <td colspan="5" style="text-align:center; padding:40px;">No farm areas registered.</td>
-                            </tr>
-                            <?php else: ?>
-                            <?php foreach ($locations as $loc): 
-                                $isNearFull = ($loc['capacity'] > 0 && ($loc['occupied_count'] / $loc['capacity']) > 0.85);
-                            ?>
-                            <tr>
-                                <td class="strong"><?= htmlspecialchars($loc['location_name']) ?></td>
-                                <td class="muted"><?= htmlspecialchars($loc['location_type']) ?></td>
-                                <td><?= $loc['capacity'] ?></td>
-                                <td><?= $loc['occupied_count'] ?></td>
-                                <td>
-                                    <span class="ag-tag <?= $isNearFull ? 'warn' : 'ok' ?>">
-                                        <?= $isNearFull ? 'Near full' : 'Good' ?>
-                                    </span>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </main>
-
-        <aside class="ag-sidebar">
-            <div class="ag-side-card">
-                <div class="ag-side-title">Live Capacity</div>
-                <div class="ag-meta-row">
-                    <span class="ag-meta-lbl">Total capacity</span>
-                    <span class="ag-meta-val"><?= $totalCapacity ?></span>
-                </div>
-                <div class="ag-meta-row">
-                    <span class="ag-meta-lbl">Occupied</span>
-                    <span class="ag-meta-val <?= $utilization > 85 ? 'warn' : '' ?>"><?= $totalOccupied ?></span>
-                </div>
-                <div class="ag-meta-row">
-                    <span class="ag-meta-lbl">Utilization</span>
-                    <span class="ag-meta-val"><?= $utilization ?>%</span>
-                </div>
-            </div>
-
-            <div class="ag-side-card">
-                <div class="ag-side-title">Occupancy Map</div>
-                <div class="ag-bar-group"
-                    style="display: flex; align-items: flex-end; gap: 8px; height: 100px; padding-top: 20px;">
-                    <?php foreach ($locations as $loc): 
-                        $pct = ($loc['capacity'] > 0) ? ($loc['occupied_count'] / $loc['capacity']) : 0;
-                        $height = $pct * 60; // Max 60px
-                    ?>
-                    <div class="ag-bar-col" style="flex: 1; text-align: center;">
-                        <div class="ag-bar <?= $pct > 0.85 ? 'hi' : '' ?>"
-                            style="height:<?= max($height, 2) ?>px; background: <?= $pct > 0.85 ? '#ff4d4d' : '#2ecc71' ?>; border-radius: 2px;">
-                        </div>
-                        <div class="ag-bar-lbl" style="font-size: 10px; margin-top: 4px;">
-                            <?= htmlspecialchars(substr($loc['location_name'], 0, 3)) ?></div>
-                    </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-        </aside>
+  <!-- Farm Info Card -->
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-header">
+      <span class="card-title">🏡 Farm Profile</span>
+      <button class="btn btn-sm btn-secondary" onclick="openEditFarm()">✏️ Edit</button>
     </div>
-</body>
+    <div class="card-body">
+      <div class="form-grid cols-2" id="farmInfo">
+        <div class="spinner"></div>
+      </div>
+    </div>
+  </div>
 
+  <!-- Locations -->
+  <div class="card">
+    <div class="card-header"><span class="card-title">📍 Farm Locations / Pens</span></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Name</th><th>Type</th><th>Barangay</th><th>City/Municipality</th><th>Province</th><th>Capacity</th><th>Actions</th></tr></thead>
+        <tbody id="locBody"><tr><td colspan="7"><div class="spinner"></div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- Edit Farm Modal -->
+<div class="modal-overlay" id="farmModal">
+  <div class="modal modal-sm">
+    <div class="modal-header"><span class="modal-title">Edit Farm</span><button class="modal-close" onclick="closeModal('farmModal')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="farmerId">
+      <div class="form-group"><label class="form-label">Farm Name *</label><input class="form-control" id="farmName" placeholder="My Farm"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('farmModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveFarm()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Location Modal -->
+<div class="modal-overlay" id="locModal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span class="modal-title" id="locModalTitle">Add Location</span>
+      <button class="modal-close" onclick="closeModal('locModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="locId">
+      <div class="form-grid cols-2">
+        <div class="form-group"><label class="form-label">Location Name *</label><input class="form-control" id="locName" placeholder="e.g. Pen A"></div>
+        <div class="form-group"><label class="form-label">Type</label>
+          <select class="form-control" id="locType">
+            <option value="Pen">Pen</option>
+            <option value="Barn">Barn</option>
+            <option value="Pasture">Pasture</option>
+            <option value="Cage">Cage</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Barangay</label><input class="form-control" id="locBrgy" placeholder="Barangay"></div>
+        <div class="form-group"><label class="form-label">City / Municipality</label><input class="form-control" id="locCity" placeholder="City/Municipality"></div>
+        <div class="form-group"><label class="form-label">Province</label><input class="form-control" id="locProv" placeholder="Province"></div>
+        <div class="form-group"><label class="form-label">Capacity (animals)</label><input type="number" class="form-control" id="locCap" placeholder="50"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Description</label><textarea class="form-control" id="locDesc" rows="2" placeholder="Notes about this location…"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('locModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveLocation()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="../../js/config.js"></script>
+<script src="../../js/api/client.js"></script>
+<script src="../../js/utils/helpers.js"></script>
+<script>
+const authUser = requireAuth(['Farmer']);
+let farmerData = null, locations = [];
+
+async function load() {
+  const [farmerRes, locRes] = await Promise.all([Api.get('/farmers'), Api.get('/locations')]);
+  const farmers = farmerRes.data || [];
+  farmerData = farmers.find(f => f.user_id == authUser.sub) || farmers[0];
+  locations = locRes.data || [];
+
+  renderFarmInfo();
+  renderLocations();
+}
+
+function renderFarmInfo() {
+  document.getElementById('farmInfo').innerHTML = farmerData ? `
+    <div><label class="form-label">Farm Name</label><p><strong>${fmt(farmerData.farm_name)}</strong></p></div>
+    <div><label class="form-label">Farmer</label><p>${fmt(farmerData.user_first_name)} ${fmt(farmerData.user_last_name,'')}</p></div>
+    <div><label class="form-label">Email</label><p>${fmt(farmerData.user_email)}</p></div>
+    <div><label class="form-label">Phone</label><p>${fmt(farmerData.user_phone_number)}</p></div>
+  ` : '<p style="color:var(--text-muted)">No farm profile found.</p>';
+}
+
+function renderLocations() {
+  const body = document.getElementById('locBody');
+  if (!locations.length) { body.innerHTML = emptyRow(7, 'No locations added yet.'); return; }
+  body.innerHTML = locations.map(l => `<tr>
+    <td><strong>${l.location_name}</strong></td>
+    <td><span class="tag">${l.location_type||'—'}</span></td>
+    <td>${fmt(l.location_brgy)}</td>
+    <td>${fmt(l.location_city_muni)}</td>
+    <td>${fmt(l.location_province)}</td>
+    <td><span class="badge badge-green">${l.capacity||0}</span></td>
+    <td><div class="table-actions">
+      <button class="btn btn-sm btn-secondary" onclick="editLocation(${l.location_id})">✏️</button>
+      <button class="btn btn-sm btn-danger" onclick="deleteLocation(${l.location_id},'${l.location_name}')">🗑️</button>
+    </div></td>
+  </tr>`).join('');
+}
+
+function openEditFarm() {
+  document.getElementById('farmerId').value = farmerData?.farmer_id || '';
+  document.getElementById('farmName').value = farmerData?.farm_name || '';
+  openModal('farmModal');
+}
+
+async function saveFarm() {
+  const id = document.getElementById('farmerId').value;
+  const res = await Api.put(`/farmers/${id}`, { farm_name: document.getElementById('farmName').value });
+  if (res.ok) { toast('Farm updated!'); closeModal('farmModal'); load(); }
+  else toast(res.message || 'Failed.', 'error');
+}
+
+function openAddLocation() {
+  document.getElementById('locId').value = '';
+  ['locName','locBrgy','locCity','locProv','locDesc'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('locCap').value = '';
+  document.getElementById('locType').value = 'Pen';
+  document.getElementById('locModalTitle').textContent = 'Add Location';
+  openModal('locModal');
+}
+
+function editLocation(id) {
+  const l = locations.find(x => x.location_id == id);
+  document.getElementById('locId').value   = l.location_id;
+  document.getElementById('locName').value = l.location_name;
+  document.getElementById('locType').value = l.location_type || 'Pen';
+  document.getElementById('locBrgy').value = l.location_brgy || '';
+  document.getElementById('locCity').value = l.location_city_muni || '';
+  document.getElementById('locProv').value = l.location_province || '';
+  document.getElementById('locCap').value  = l.capacity || '';
+  document.getElementById('locDesc').value = l.description || '';
+  document.getElementById('locModalTitle').textContent = 'Edit Location';
+  openModal('locModal');
+}
+
+async function saveLocation() {
+  const id = document.getElementById('locId').value;
+  const body = {
+    location_name:     document.getElementById('locName').value,
+    location_type:     document.getElementById('locType').value,
+    location_brgy:     document.getElementById('locBrgy').value,
+    location_city_muni:document.getElementById('locCity').value,
+    location_province: document.getElementById('locProv').value,
+    capacity:          document.getElementById('locCap').value || 0,
+    description:       document.getElementById('locDesc').value,
+  };
+  if (!body.location_name) { toast('Location name required.', 'warning'); return; }
+  const res = id ? await Api.put(`/locations/${id}`, body) : await Api.post('/locations', body);
+  if (res.ok) { toast(id ? 'Location updated!' : 'Location added!'); closeModal('locModal'); load(); }
+  else toast(res.message || 'Failed.', 'error');
+}
+
+function deleteLocation(id, name) {
+  confirmDelete(`Delete location "${name}"?`, async () => {
+    const res = await Api.del(`/locations/${id}`);
+    if (res.ok) { toast('Location deleted.'); load(); }
+    else toast(res.message || 'Failed.', 'error');
+  });
+}
+
+load();
+</script>
+</body>
 </html>

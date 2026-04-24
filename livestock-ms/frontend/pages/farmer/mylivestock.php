@@ -1,120 +1,242 @@
-<?php
-session_start();
-require_once '../../../backend/shared/db_config.php';
+<?php $navRole = 'farmer'; ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Livestock — LivestoChub</title>
+  <link rel="stylesheet" href="../../css/main.css">
+</head>
+<body>
+<?php include '../../includes/nav.php'; ?>
+<div class="app-layout">
+<div class="main-content" id="mainContent">
+  <div class="page-header">
+    <div><div class="page-title">My Livestock</div><div class="page-subtitle">Manage your animal records</div></div>
+    <button class="btn btn-primary" onclick="openAdd()">+ Add Livestock</button>
+  </div>
 
-// 1. Auth Check
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'Farmer') {
-    header("Location: ../auth/login.php");
-    exit();
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Livestock Records</span>
+      <div class="toolbar">
+        <div class="search-box"><span class="search-icon">🔍</span><input type="text" id="searchInput" placeholder="Search…" oninput="filterTable('searchInput','lvBody')"></div>
+        <select class="form-control" id="statusFilter" style="width:auto" onchange="loadLivestock()">
+          <option value="">All Status</option>
+          <option value="Available">Available</option>
+          <option value="Reserved">Reserved</option>
+          <option value="Sold">Sold</option>
+        </select>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Tag #</th><th>Category / Breed</th><th>Gender</th><th>Weight</th><th>Price</th><th>Location</th><th>Status</th><th>DOB</th><th>Actions</th></tr></thead>
+        <tbody id="lvBody"><tr><td colspan="9"><div class="spinner"></div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="lvModal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span class="modal-title" id="lvModalTitle">Add Livestock</span>
+      <button class="modal-close" onclick="closeModal('lvModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="lvId">
+      <div class="form-grid cols-2">
+        <div class="form-group"><label class="form-label">Tag Number *</label><input class="form-control" id="lvTag" placeholder="e.g. TAG-001"></div>
+        <div class="form-group"><label class="form-label">Gender *</label>
+          <select class="form-control" id="lvGender"><option value="Male">Male</option><option value="Female">Female</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">Category *</label>
+          <select class="form-control" id="lvCat" onchange="loadBreeds()"><option value="">Select category…</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">Breed</label>
+          <select class="form-control" id="lvBreed"><option value="">Select breed…</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">Location</label>
+          <select class="form-control" id="lvLocation"><option value="">Select location…</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">Health Status</label>
+          <input class="form-control" id="lvHealth" placeholder="e.g. Healthy">
+        </div>
+        <div class="form-group"><label class="form-label">Price (₱)</label>
+          <input type="number" step="0.01" class="form-control" id="lvPrice" placeholder="0.00">
+        </div>
+        <div class="form-group"><label class="form-label">Current Weight (kg)</label>
+          <input type="number" step="0.1" class="form-control" id="lvWeight" placeholder="0.0">
+        </div>
+        <div class="form-group"><label class="form-label">Date of Birth</label>
+          <input type="date" class="form-control" id="lvDob">
+        </div>
+        <div class="form-group"><label class="form-label">Sale Status</label>
+          <select class="form-control" id="lvSaleStatus">
+            <option value="Available">Available</option>
+            <option value="Reserved">Reserved</option>
+            <option value="Sold">Sold</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Description</label>
+        <textarea class="form-control" id="lvDesc" rows="3" placeholder="Additional notes…"></textarea>
+      </div>
+      <div class="form-group"><label class="form-label">Photo</label>
+        <input type="file" class="form-control" id="lvImage" accept="image/*">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('lvModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveLivestock()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="../../js/config.js"></script>
+<script src="../../js/api/client.js"></script>
+<script src="../../js/utils/helpers.js"></script>
+<script>
+const authUser = requireAuth(['Farmer']);
+let livestock = [], categories = [], locations = [];
+
+async function init() {
+  const [catRes, locRes] = await Promise.all([Api.get('/categories'), Api.get('/locations')]);
+  categories = catRes.data || [];
+  locations  = locRes.data || [];
+
+  const catOpts = categories.map(c => `<option value="${c.category_id}">${categoryEmoji(c.category_name)} ${c.category_name}</option>`).join('');
+  document.getElementById('lvCat').innerHTML = '<option value="">Select category…</option>' + catOpts;
+
+  const locOpts = locations.map(l => `<option value="${l.location_id}">${l.location_name}</option>`).join('');
+  document.getElementById('lvLocation').innerHTML = '<option value="">Select location…</option>' + locOpts;
+
+  loadLivestock();
 }
 
-$farmer_id = $_SESSION['farmer_id'];
+async function loadBreeds() {
+  const catId = document.getElementById('lvCat').value;
+  document.getElementById('lvBreed').innerHTML = '<option value="">Loading…</option>';
+  if (!catId) { document.getElementById('lvBreed').innerHTML = '<option value="">Select breed…</option>'; return; }
+  const res = await Api.get(`/breeds?category_id=${catId}`);
+  const opts = (res.data||[]).map(b => `<option value="${b.breed_id}">${b.breed_name}</option>`).join('');
+  document.getElementById('lvBreed').innerHTML = '<option value="">Select breed…</option>' + opts;
+}
 
-// 2. Fetch All Livestock for this Farmer (READ)
-$stmt = $pdo->prepare("
-    SELECT 
-        l.livestock_id, 
-        c.category_name, 
-        b.breed_name, 
-        l.gender, 
-        l.health_status, 
-        l.sale_status,
-        (SELECT weight FROM livestock_weight WHERE livestock_id = l.livestock_id ORDER BY date_recorded DESC LIMIT 1) as current_weight
-    FROM livestock l
-    JOIN category c ON l.category_id = c.category_id
-    JOIN breeds b ON l.breed_id = b.breed_id
-    WHERE l.farmer_id = ?
-    ORDER BY l.livestock_id DESC
-");
-$stmt->execute([$farmer_id]);
-$inventory = $stmt->fetchAll();
-?>
+async function loadLivestock() {
+  const body = document.getElementById('lvBody');
+  body.innerHTML = loadingRow(9);
+  const sf = document.getElementById('statusFilter').value;
+  let ep = '/livestock';
+  if (sf) ep += `?sale_status=${sf}`;
+  const res = await Api.get(ep);
+  livestock = res.data || [];
+  if (!livestock.length) { body.innerHTML = emptyRow(9); return; }
+  body.innerHTML = livestock.map(l => `<tr>
+    <td><strong>${l.tag_number}</strong></td>
+    <td><span class="tag">${categoryEmoji(l.category_name)} ${fmt(l.category_name)}</span><br><small style="color:var(--text-muted)">${fmt(l.breed_name)}</small></td>
+    <td>${statusBadge(l.gender)}</td>
+    <td>${fmtWeight(l.current_weight)}</td>
+    <td style="font-weight:700;color:var(--accent-dark)">${fmtMoney(l.price)}</td>
+    <td style="font-size:.82rem">${fmt(l.location_name)}</td>
+    <td>${statusBadge(l.sale_status)}</td>
+    <td>${fmtDate(l.date_of_birth)}</td>
+    <td><div class="table-actions">
+      <button class="btn btn-sm btn-secondary" onclick="editLivestock(${l.livestock_id})">✏️</button>
+      <button class="btn btn-sm btn-danger" onclick="deleteLivestock(${l.livestock_id},'${l.tag_number}')">🗑️</button>
+    </div></td>
+  </tr>`).join('');
+}
 
-<!doctype html>
-<html lang="en">
+function openAdd() {
+  document.getElementById('lvId').value = '';
+  document.getElementById('lvTag').value = '';
+  document.getElementById('lvGender').value = 'Male';
+  document.getElementById('lvCat').value = '';
+  document.getElementById('lvBreed').innerHTML = '<option value="">Select breed…</option>';
+  document.getElementById('lvLocation').value = '';
+  document.getElementById('lvHealth').value = '';
+  document.getElementById('lvPrice').value = '';
+  document.getElementById('lvWeight').value = '';
+  document.getElementById('lvDob').value = '';
+  document.getElementById('lvSaleStatus').value = 'Available';
+  document.getElementById('lvDesc').value = '';
+  document.getElementById('lvModalTitle').textContent = 'Add Livestock';
+  openModal('lvModal');
+}
 
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AgriHub — My Inventory</title>
-    <link rel="stylesheet" href="../../css/agrihub.css">
-</head>
+async function editLivestock(id) {
+  const l = livestock.find(x => x.livestock_id == id);
+  document.getElementById('lvId').value         = l.livestock_id;
+  document.getElementById('lvTag').value         = l.tag_number;
+  document.getElementById('lvGender').value      = l.gender;
+  document.getElementById('lvCat').value         = l.category_id || '';
+  document.getElementById('lvLocation').value    = l.location_id || '';
+  document.getElementById('lvHealth').value      = l.health_status || '';
+  document.getElementById('lvPrice').value       = l.price || '';
+  document.getElementById('lvWeight').value      = l.current_weight || '';
+  document.getElementById('lvSaleStatus').value  = l.sale_status;
+  document.getElementById('lvDesc').value        = l.description || '';
+  if (l.date_of_birth) document.getElementById('lvDob').value = l.date_of_birth.split(' ')[0];
+  await loadBreeds();
+  document.getElementById('lvBreed').value = l.breed_id || '';
+  document.getElementById('lvModalTitle').textContent = 'Edit Livestock';
+  openModal('lvModal');
+}
 
-<body>
+async function saveLivestock() {
+  const id = document.getElementById('lvId').value;
+  const fileInput = document.getElementById('lvImage');
+  const hasFile = fileInput.files.length > 0;
 
-    <?php include '../../css/include.css/nav.php'; ?>
+  let res;
+  if (hasFile) {
+    const fd = new FormData();
+    fd.append('tag_number',    document.getElementById('lvTag').value);
+    fd.append('gender',        document.getElementById('lvGender').value);
+    fd.append('category_id',   document.getElementById('lvCat').value);
+    fd.append('breed_id',      document.getElementById('lvBreed').value);
+    fd.append('location_id',   document.getElementById('lvLocation').value);
+    fd.append('health_status', document.getElementById('lvHealth').value);
+    fd.append('price',         document.getElementById('lvPrice').value);
+    fd.append('current_weight',document.getElementById('lvWeight').value);
+    fd.append('date_of_birth', document.getElementById('lvDob').value);
+    fd.append('sale_status',   document.getElementById('lvSaleStatus').value);
+    fd.append('description',   document.getElementById('lvDesc').value);
+    fd.append('livestock_image', fileInput.files[0]);
+    res = id ? await Api.uploadPut(`/livestock/${id}`, fd) : await Api.upload('/livestock', fd);
+  } else {
+    const body = {
+      tag_number:     document.getElementById('lvTag').value,
+      gender:         document.getElementById('lvGender').value,
+      category_id:    document.getElementById('lvCat').value,
+      breed_id:       document.getElementById('lvBreed').value || null,
+      location_id:    document.getElementById('lvLocation').value || null,
+      health_status:  document.getElementById('lvHealth').value,
+      price:          document.getElementById('lvPrice').value || 0,
+      current_weight: document.getElementById('lvWeight').value || null,
+      date_of_birth:  document.getElementById('lvDob').value || null,
+      sale_status:    document.getElementById('lvSaleStatus').value,
+      description:    document.getElementById('lvDesc').value,
+    };
+    res = id ? await Api.put(`/livestock/${id}`, body) : await Api.post('/livestock', body);
+  }
 
-    <div class="ag-page">
-        <main class="ag-main">
-            <div class="ag-page-header">
-                <div class="ag-eyebrow">Inventory Management</div>
-                <h1 class="ag-page-title">Manage your <em>livestock.</em></h1>
-                <a href="addAnimals.php" class="ag-btn ag-btn-primary" style="margin-top: 10px;">+ Add New Animal</a>
-            </div>
+  if (res.ok) { toast(id ? 'Livestock updated!' : 'Livestock added!'); closeModal('lvModal'); loadLivestock(); }
+  else toast(res.message || 'Save failed.', 'error');
+}
 
-            <?php if (isset($_GET['msg'])): ?>
-            <div class="ag-tag ok" style="margin-bottom: 20px; width: 100%; padding: 10px; text-align: center;">
-                <?= htmlspecialchars($_GET['msg']) ?>
-            </div>
-            <?php endif; ?>
+function deleteLivestock(id, tag) {
+  confirmDelete(`Delete livestock "${tag}"?`, async () => {
+    const res = await Api.del(`/livestock/${id}`);
+    if (res.ok) { toast('Livestock deleted.'); loadLivestock(); }
+    else toast(res.message || 'Failed.', 'error');
+  });
+}
 
-            <div class="ag-card">
-                <div class="ag-card-body">
-                    <table class="ag-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Species</th>
-                                <th>Breed</th>
-                                <th>Weight</th>
-                                <th>Health</th>
-                                <th>Market Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (!empty($inventory)): ?>
-                            <?php foreach ($inventory as $row): ?>
-                            <tr>
-                                <td>#<?= $row['livestock_id'] ?></td>
-                                <td><?= htmlspecialchars($row['category_name']) ?></td>
-                                <td><?= htmlspecialchars($row['breed_name']) ?></td>
-                                <td><?= $row['current_weight'] ?? '0.0' ?> kg</td>
-                                <td>
-                                    <span class="ag-tag <?= ($row['health_status'] == 'Healthy') ? 'ok' : 'danger' ?>">
-                                        <?= $row['health_status'] ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <strong><?= $row['sale_status'] ?></strong>
-                                </td>
-                                <td class="ag-flex ag-gap-sm">
-                                    <a href="editAnimal.php?id=<?= $row['livestock_id'] ?>" class="ag-btn ag-btn-ghost"
-                                        style="padding: 5px 10px; font-size: 12px;">Edit</a>
-
-                                    <form action="../../../backend/farmer/livestock_ctrl.php" method="POST"
-                                        onsubmit="return confirm('Are you sure you want to delete this animal?');">
-                                        <input type="hidden" name="action" value="delete">
-                                        <input type="hidden" name="livestock_id" value="<?= $row['livestock_id'] ?>">
-                                        <button type="submit" class="ag-btn"
-                                            style="background: #ff4d4d; color: white; border: none; padding: 5px 10px; font-size: 12px; cursor: pointer;">Delete</button>
-                                    </form>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                            <?php else: ?>
-                            <tr>
-                                <td colspan="7" style="text-align:center; padding: 50px;">You haven't added any animals
-                                    yet.</td>
-                            </tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </main>
-    </div>
-
+init();
+</script>
 </body>
-
 </html>

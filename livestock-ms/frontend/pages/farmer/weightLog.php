@@ -1,200 +1,157 @@
-<?php
-session_start();
-require_once '../../../backend/shared/db_config.php';
-
-// 1. Security & Role Check
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'Farmer') {
-    header("Location: ../auth/login.php"); 
-    exit();
-}
-
-$farmer_id = $_SESSION['farmer_id'];
-$message = "";
-$messageType = "";
-
-// 2. Handle Weight Entry Submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['livestock_id'])) {
-    $livestock_id = $_POST['livestock_id'];
-    $new_weight   = $_POST['weight'];
-    $log_date     = $_POST['log_date'] ?: date('Y-m-d');
-
-    try {
-        $pdo->beginTransaction();
-
-        // Verify livestock belongs to this farmer and get previous weight
-        $prevStmt = $pdo->prepare("SELECT weight FROM livestock WHERE livestock_id = ? AND farmer_id = ?");
-        $prevStmt->execute([$livestock_id, $farmer_id]);
-        $livestock = $prevStmt->fetch();
-
-        if ($livestock) {
-            $prev_weight = $livestock['weight'] ?: 0;
-            $weight_change = $new_weight - $prev_weight;
-
-            // Log into history (Assumes weight_logs table exists)
-            $logSql = "INSERT INTO weight_logs (livestock_id, previous_weight, current_weight, weight_change, log_date) 
-                       VALUES (?, ?, ?, ?, ?)";
-            $pdo->prepare($logSql)->execute([$livestock_id, $prev_weight, $new_weight, $weight_change, $log_date]);
-
-            // Update main livestock table
-            $updateSql = "UPDATE livestock SET weight = ? WHERE livestock_id = ?";
-            $pdo->prepare($updateSql)->execute([$new_weight, $livestock_id]);
-
-            $pdo->commit();
-            $message = "Weight entry for #LIV-{$livestock_id} recorded.";
-            $messageType = "ok";
-        } else {
-            throw new Exception("Livestock ID not found in your inventory.");
-        }
-    } catch (Exception $e) {
-        $pdo->rollBack();
-        $message = "Error: " . $e->getMessage();
-        $messageType = "danger";
-    }
-}
-
-// 3. Fetch History (Join with Category for context)
-try {
-    $historySql = "
-        SELECT wl.*, c.category_name 
-        FROM weight_logs wl 
-        JOIN livestock l ON wl.livestock_id = l.livestock_id 
-        JOIN category c ON l.category_id = c.category_id
-        WHERE l.farmer_id = ?
-        ORDER BY wl.log_date DESC, wl.weight_log_id DESC LIMIT 10";
-    $historyStmt = $pdo->prepare($historySql);
-    $historyStmt->execute([$farmer_id]);
-    $logs = $historyStmt->fetchAll();
-    
-    $total_records = $pdo->prepare("SELECT COUNT(*) FROM weight_logs wl JOIN livestock l ON wl.livestock_id = l.livestock_id WHERE l.farmer_id = ?");
-    $total_records->execute([$farmer_id]);
-    $count = $total_records->fetchColumn();
-} catch (PDOException $e) {
-    $logs = [];
-    $count = 0;
-}
-
-$page_title   = 'Weight Log';
-$current_page = 'weightLog';
-?>
-<!doctype html>
+<?php $navRole = 'farmer'; ?>
+<!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AgriHub — Weight Log</title>
-    <link rel="stylesheet" href="../../css/agrihub.css" />
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weight Log — LivestoChub</title>
+  <link rel="stylesheet" href="../../css/main.css">
 </head>
-
 <body>
+<?php include '../../includes/nav.php'; ?>
+<div class="app-layout">
+<div class="main-content" id="mainContent">
+  <div class="page-header">
+    <div><div class="page-title">⚖️ Weight Log</div><div class="page-subtitle">Track weight history per livestock</div></div>
+    <button class="btn btn-primary" onclick="openAddWeight()">+ Log Weight</button>
+  </div>
 
-    <?php include '../../css/include.css/nav.php'; ?>
-
-    <div class="ag-page">
-        <main class="ag-main">
-            <div class="ag-page-header">
-                <div class="ag-eyebrow">Farmer portal</div>
-                <h1 class="ag-page-title">Growth <em>tracking.</em></h1>
-            </div>
-
-            <?php if ($message): ?>
-            <div class="ag-tag <?= $messageType ?>"
-                style="margin-bottom: 20px; width: 100%; padding: 12px; text-align: center;">
-                <?= htmlspecialchars($message) ?>
-            </div>
-            <?php endif; ?>
-
-            <div class="ag-card ag-mb-md">
-                <div class="ag-card-header">
-                    <span class="ag-card-title">New entry</span>
-                </div>
-                <div class="ag-card-body">
-                    <form method="POST">
-                        <div class="ag-form-grid"
-                            style="grid-template-columns:1fr 1fr 1fr 140px;gap:12px;align-items:flex-end;">
-                            <div class="ag-form-group" style="margin-bottom:0;">
-                                <label class="ag-label">Livestock ID</label>
-                                <input class="ag-input" type="number" name="livestock_id" placeholder="e.g. 42"
-                                    required />
-                            </div>
-                            <div class="ag-form-group" style="margin-bottom:0;">
-                                <label class="ag-label">New Weight (kg)</label>
-                                <input class="ag-input" type="number" step="0.01" name="weight" placeholder="0.00"
-                                    required />
-                            </div>
-                            <div class="ag-form-group" style="margin-bottom:0;">
-                                <label class="ag-label">Date</label>
-                                <input class="ag-input" type="date" name="log_date" value="<?= date('Y-m-d') ?>" />
-                            </div>
-                            <button type="submit" class="ag-btn ag-btn-primary" style="height:42px;">Log Weight</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <div class="ag-card">
-                <div class="ag-card-header">
-                    <span class="ag-card-title">Recent History</span>
-                    <span class="ag-pill"><?= $count ?> logs total</span>
-                </div>
-                <table class="ag-table">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>ID</th>
-                            <th>Category</th>
-                            <th>Prev (kg)</th>
-                            <th>New (kg)</th>
-                            <th>Growth</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($logs as $log): 
-                            $change = $log['weight_change'];
-                            $class = ($change >= 0) ? 'ok' : 'danger';
-                        ?>
-                        <tr>
-                            <td class="muted"><?= date('M d, Y', strtotime($log['log_date'])) ?></td>
-                            <td class="strong">#LIV-<?= $log['livestock_id'] ?></td>
-                            <td class="muted"><?= htmlspecialchars($log['category_name']) ?></td>
-                            <td><?= number_format($log['previous_weight'], 2) ?></td>
-                            <td class="strong"><?= number_format($log['current_weight'], 2) ?></td>
-                            <td>
-                                <span
-                                    class="ag-tag <?= $class ?>"><?= ($change >= 0 ? '+' : '') . number_format($change, 2) ?>
-                                    kg</span>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                        <?php if (empty($logs)): ?>
-                        <tr>
-                            <td colspan="6" style="text-align:center; padding:30px;">No growth data found.</td>
-                        </tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-        </main>
-
-        <aside class="ag-sidebar">
-            <div class="ag-side-card">
-                <div class="ag-side-title">Farming Insight</div>
-                <div class="ag-activity-item">
-                    <div class="ag-activity-dot new"></div>
-                    <div>
-                        <div class="ag-activity-text">Bi-weekly weighing is the gold standard for tracking livestock
-                            health.</div>
-                    </div>
-                </div>
-                <div class="ag-activity-item">
-                    <div class="ag-activity-dot"></div>
-                    <div>
-                        <div class="ag-activity-text">Negative growth may indicate a need for a dietary review.</div>
-                    </div>
-                </div>
-            </div>
-        </aside>
+  <div style="display:grid;grid-template-columns:300px 1fr;gap:20px;">
+    <!-- Livestock List -->
+    <div class="card" style="height:fit-content;">
+      <div class="card-header"><span class="card-title">Select Livestock</span></div>
+      <div style="max-height:520px;overflow-y:auto;" id="lvList">
+        <div style="padding:20px;text-align:center"><div class="spinner"></div></div>
+      </div>
     </div>
-</body>
 
+    <!-- Weight History -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title" id="weightTitle">Select a livestock to view weights</span>
+        <button class="btn btn-sm btn-primary" id="addWeightBtn" style="display:none" onclick="openAddWeight()">+ Log Weight</button>
+      </div>
+      <div class="card-body" id="weightHistory">
+        <div class="empty-state"><div class="empty-icon">⚖️</div><h3>No livestock selected</h3><p>Click a livestock on the left to view its weight history.</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- Log Weight Modal -->
+<div class="modal-overlay" id="weightModal">
+  <div class="modal modal-sm">
+    <div class="modal-header"><span class="modal-title">Log Weight</span><button class="modal-close" onclick="closeModal('weightModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Livestock</label>
+        <select class="form-control" id="wLvSelect"><option value="">Select livestock…</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Weight (kg) *</label>
+        <input type="number" step="0.1" class="form-control" id="wValue" placeholder="0.0">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('weightModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveWeight()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="../../js/config.js"></script>
+<script src="../../js/api/client.js"></script>
+<script src="../../js/utils/helpers.js"></script>
+<script>
+requireAuth(['Farmer']);
+let livestock = [], selectedId = null;
+
+async function init() {
+  const res = await Api.get('/livestock');
+  livestock = res.data || [];
+
+  const lvOpts = livestock.map(l => `<option value="${l.livestock_id}">${l.tag_number} (${l.category_name})</option>`).join('');
+  document.getElementById('wLvSelect').innerHTML = '<option value="">Select livestock…</option>' + lvOpts;
+
+  const listEl = document.getElementById('lvList');
+  if (!livestock.length) { listEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted)">No livestock found.</div>'; return; }
+  listEl.innerHTML = livestock.map(l => `
+    <div onclick="selectLivestock(${l.livestock_id})" id="lvItem${l.livestock_id}"
+      style="padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;transition:background .15s;">
+      <span style="font-size:1.4rem">${categoryEmoji(l.category_name)}</span>
+      <div>
+        <div style="font-weight:600;font-size:.9rem">${l.tag_number}</div>
+        <div style="font-size:.78rem;color:var(--text-muted)">${fmt(l.category_name)} · ${fmtWeight(l.current_weight)}</div>
+      </div>
+    </div>`).join('');
+}
+
+async function selectLivestock(id) {
+  selectedId = id;
+  document.querySelectorAll('[id^=lvItem]').forEach(el => el.style.background = '');
+  const el = document.getElementById(`lvItem${id}`);
+  if (el) el.style.background = 'var(--green-50)';
+
+  const lv = livestock.find(x => x.livestock_id == id);
+  document.getElementById('weightTitle').textContent = `Weight History — ${lv?.tag_number}`;
+  document.getElementById('addWeightBtn').style.display = '';
+  document.getElementById('wLvSelect').value = id;
+
+  const histEl = document.getElementById('weightHistory');
+  histEl.innerHTML = '<div class="spinner"></div>';
+
+  const res = await Api.get(`/livestock/${id}/weights`);
+  const weights = res.data || [];
+
+  if (!weights.length) {
+    histEl.innerHTML = '<div class="empty-state"><div class="empty-icon">⚖️</div><h3>No weight records yet</h3><p>Click "+ Log Weight" to record the first entry.</p></div>';
+    return;
+  }
+
+  const maxW = Math.max(...weights.map(w => parseFloat(w.weight||0)));
+  histEl.innerHTML = `<div class="weight-history">
+    ${weights.map(w => {
+      const pct = maxW > 0 ? (parseFloat(w.weight)/maxW*100).toFixed(0) : 0;
+      return `<div class="weight-row">
+        <span class="weight-date">${fmtDate(w.date_recorded)}</span>
+        <div class="weight-bar-wrap"><div class="weight-bar" style="width:${pct}%"></div></div>
+        <span class="weight-value">${fmtWeight(w.weight)}</span>
+        <button class="btn btn-sm btn-danger btn-icon" onclick="deleteWeight(${id},${w.weight_id})" title="Delete">🗑️</button>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function openAddWeight() {
+  document.getElementById('wValue').value = '';
+  if (selectedId) document.getElementById('wLvSelect').value = selectedId;
+  openModal('weightModal');
+}
+
+async function saveWeight() {
+  const lvId = document.getElementById('wLvSelect').value;
+  const weight = document.getElementById('wValue').value;
+  if (!lvId) { toast('Please select a livestock.', 'warning'); return; }
+  if (!weight) { toast('Weight is required.', 'warning'); return; }
+
+  const res = await Api.post(`/livestock/${lvId}/weights`, { weight });
+  if (res.ok) {
+    toast('Weight logged!');
+    closeModal('weightModal');
+    // Update local weight
+    const lv = livestock.find(x => x.livestock_id == lvId);
+    if (lv) lv.current_weight = weight;
+    if (selectedId == lvId) selectLivestock(lvId);
+  } else toast(res.message || 'Failed.', 'error');
+}
+
+function deleteWeight(lvId, weightId) {
+  confirmDelete('Delete this weight record?', async () => {
+    const res = await Api.del(`/livestock/${lvId}/weights/${weightId}`);
+    if (res.ok) { toast('Record deleted.'); selectLivestock(lvId); }
+    else toast(res.message || 'Failed.', 'error');
+  });
+}
+
+init();
+</script>
+</body>
 </html>
