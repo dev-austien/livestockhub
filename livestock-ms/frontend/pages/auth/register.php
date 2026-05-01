@@ -11,7 +11,7 @@
   <div class="auth-box" style="max-width:520px;">
     <div class="auth-logo">
       <div class="logo-icon">🐄</div>
-      <h1>LivestoChub</h1>
+      <h1>LivestockHub</h1>
       <p>Create your account</p>
     </div>
 
