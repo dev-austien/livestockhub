@@ -1,11 +1,17 @@
 <?php
-// ─── Bootstrap ────────────────────────────────────────────────────────────────
+/**
+ * Project: LivestoChub API
+ * Purpose: Main Router with Localhost Subfolder Support
+ */
+
+// 1. Load Configurations & Helpers
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/config/config.php';
 require_once __DIR__ . '/helpers/jwt.php';
 require_once __DIR__ . '/helpers/response.php';
 require_once __DIR__ . '/middleware/auth.php';
 
+// 2. Load Controllers
 require_once __DIR__ . '/controllers/AuthController.php';
 require_once __DIR__ . '/controllers/UserController.php';
 require_once __DIR__ . '/controllers/FarmerController.php';
@@ -16,257 +22,181 @@ require_once __DIR__ . '/controllers/LivestockController.php';
 require_once __DIR__ . '/controllers/OrderController.php';
 require_once __DIR__ . '/controllers/TransactionController.php';
 
-// ─── CORS Headers ─────────────────────────────────────────────────────────────
+// 3. CORS Headers - This prevents "Network Error" in the browser
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Authorization, Content-Type');
 
+// Handle Pre-flight OPTIONS request (Browser safety check)
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
 }
 
-// ─── Parse Request ────────────────────────────────────────────────────────────
-$method   = $_SERVER['REQUEST_METHOD'];
-$rawUri   = $_SERVER['REQUEST_URI'];
-$basePath = '/api';          // Change this if your subfolder is different
+// --- 4. PATH CLEANER (The Fix for Localhost 404) ---
+// This strips the local folder names so the code only sees "auth/register"
+$basePath = '/livestockhub/livestock-ms/api'; 
+$requestUri = $_SERVER['REQUEST_URI'];
 
-// Strip query string and base path
-$path = parse_url($rawUri, PHP_URL_PATH);
-$path = '/' . trim(str_replace($basePath, '', $path), '/');
-$segments = array_filter(explode('/', $path), fn($s) => $s !== '');
-$segments = array_values($segments);
+if (strpos($requestUri, $basePath) === 0) {
+    $requestUri = substr($requestUri, strlen($basePath));
+}
 
-// ─── Route Matching ───────────────────────────────────────────────────────────
-// Helper to match a pattern and extract named params
-function matchRoute(string $pattern, array $segments): ?array {
-    $patternParts = array_values(array_filter(explode('/', trim($pattern, '/')), fn($s) => $s !== ''));
-    if (count($patternParts) !== count($segments)) return null;
+$path = parse_url($requestUri, PHP_URL_PATH);
+$route = trim($path, '/');
+$method = $_SERVER['REQUEST_METHOD'];
+// ---------------------------------------------------
 
-    $params = [];
-    foreach ($patternParts as $i => $part) {
-        if (str_starts_with($part, '{') && str_ends_with($part, '}')) {
-            $params[trim($part, '{}')] = $segments[$i];
-        } elseif ($part !== $segments[$i]) {
-            return null;
-        }
+/**
+ * Dynamic Routing Logic with REST Method & JWT Authentication Mapping
+ */
+try {
+    // Split the route into parts (e.g., "locations/12" becomes ["locations", "12"])
+    $parts = explode('/', $route);
+    
+    // --- PLURAL-TO-SINGULAR ALIAS MAPPER ---
+    $routeName = !empty($parts[0]) ? strtolower($parts[0]) : '';
+    
+    $routeAliases = [
+        'users'        => 'User',
+        'categories'   => 'Category',
+        'locations'    => 'Location',
+        'farmers'      => 'Farmer',
+        'breeds'       => 'Breed',
+        'transactions' => 'Transaction',
+        'orders'       => 'Order',
+        'livestock'    => 'Livestock'
+    ];
+
+    if (array_key_exists($routeName, $routeAliases)) {
+        $classNamePrefix = $routeAliases[$routeName];
+    } else {
+        $classNamePrefix = ucfirst($routeName);
     }
-    return $params;
-}
+    // ----------------------------------------
 
-$authCtrl        = new AuthController();
-$userCtrl        = new UserController();
-$farmerCtrl      = new FarmerController();
-$categoryCtrl    = new CategoryController();
-$breedCtrl       = new BreedController();
-$locationCtrl    = new LocationController();
-$livestockCtrl   = new LivestockController();
-$orderCtrl       = new OrderController();
-$transactionCtrl = new TransactionController();
+    $controllerName = !empty($classNamePrefix) ? $classNamePrefix . 'Controller' : null;
+    $method = $_SERVER['REQUEST_METHOD'];
 
-// ─── Auth routes (no JWT required) ───────────────────────────────────────────
+    // 1. Check if the Controller class actually exists
+    if ($controllerName && class_exists($controllerName)) {
+        $controller = new $controllerName();
 
-// POST /auth/login
-if ($method === 'POST' && matchRoute('/auth/login', $segments) !== null) {
-    $authCtrl->login(); exit;
-}
-// POST /auth/register
-if ($method === 'POST' && matchRoute('/auth/register', $segments) !== null) {
-    $authCtrl->register(); exit;
-}
-// GET /auth/me
-if ($method === 'GET' && matchRoute('/auth/me', $segments) !== null) {
-    $user = Auth::requireAuth();
-    $authCtrl->me($user); exit;
-}
+        // 2. Determine Action Name & ID Parameter based on REST design rules
+        $actionName = null;
+        $idParam = null;
 
-// ─── User routes ─────────────────────────────────────────────────────────────
+        // Check if the second URL segment is a numeric identifier (e.g., /locations/12)
+        if (!empty($parts[1]) && is_numeric($parts[1])) {
+            $idParam = (int)$parts[1];
+        }
 
-if (($p = matchRoute('/users', $segments)) !== null) {
-    $user = Auth::requireAuth();
-    match($method) {
-        'GET'  => $userCtrl->index($user),
-        default => Response::error('Method not allowed', 405),
-    }; exit;
-}
-if (($p = matchRoute('/users/{id}', $segments)) !== null) {
-    $user = Auth::requireAuth();
-    match($method) {
-        'GET'    => $userCtrl->show($user, (int)$p['id']),
-        'PUT'    => $userCtrl->update($user, (int)$p['id']),
-        'DELETE' => $userCtrl->delete($user, (int)$p['id']),
-        default  => Response::error('Method not allowed', 405),
-    }; exit;
-}
-if (($p = matchRoute('/users/{id}/status', $segments)) !== null) {
-    $user = Auth::requireAuth();
-    if ($method === 'PATCH') $userCtrl->updateStatus($user, (int)$p['id']);
-    else Response::error('Method not allowed', 405);
-    exit;
-}
+        // Map HTTP Methods directly to clean Controller methods
+        if ($method === 'GET') {
+            if ($idParam !== null) {
+                // Special check for livestock sub-actions (e.g., GET /livestock/12/weights -> weights)
+                $subAction = !empty($parts[2]) ? $parts[2] : '';
+                if ($subAction === 'weights') {
+                    $actionName = 'weights';
+                } else {
+                    $actionName = 'show';
+                }
+            } else {
+                $actionName = 'index';
+            }
+        } elseif ($method === 'POST') {
+            if ($idParam !== null) {
+                // Special check for livestock sub-actions (e.g., POST /livestock/12/weights -> addWeight)
+                $subAction = !empty($parts[2]) ? $parts[2] : '';
+                if ($subAction === 'weights') {
+                    $actionName = 'addWeight';
+                } else {
+                    $actionName = !empty($subAction) ? $subAction : 'store';
+                }
+            } else {
+                // e.g., /auth/register -> register, /auth/login -> login
+                $actionName = (!empty($parts[1])) ? $parts[1] : 'store';
+            }
+        } elseif ($method === 'PUT' || $method === 'PATCH') {
+            if ($idParam !== null) {
+                // Special check for order/livestock sub-actions (e.g., /orders/12/status -> updateStatus)
+                $subAction = !empty($parts[2]) ? $parts[2] : '';
+                if ($subAction === 'status') {
+                    $actionName = 'updateStatus';
+                } else {
+                    $actionName = !empty($subAction) ? $subAction : 'update';
+                }
+            } else {
+                $actionName = (!empty($parts[1])) ? $parts[1] : 'update';
+            }
+        } elseif ($method === 'DELETE') {
+            if ($idParam !== null) {
+                // Special check for livestock sub-actions (e.g., DELETE /livestock/12/weights/5 -> deleteWeight)
+                $subAction = !empty($parts[2]) ? $parts[2] : '';
+                if ($subAction === 'weights') {
+                    $actionName = 'deleteWeight';
+                } else {
+                    $actionName = 'delete';
+                }
+            } else {
+                $actionName = 'delete';
+            }
+        }
 
-// ─── Farmer routes ────────────────────────────────────────────────────────────
+        // 3. Fallback to secondary URL segment if no structural method matches yet
+        if (!$actionName && !empty($parts[1])) {
+            $actionName = $parts[1];
+        }
 
-if (matchRoute('/farmers', $segments) !== null) {
-    $user = Auth::requireAuth();
-    match($method) {
-        'GET'  => $farmerCtrl->index($user),
-        default => Response::error('Method not allowed', 405),
-    }; exit;
-}
-if (($p = matchRoute('/farmers/{id}', $segments)) !== null) {
-    $user = Auth::requireAuth();
-    match($method) {
-        'GET' => $farmerCtrl->show($user, (int)$p['id']),
-        'PUT' => $farmerCtrl->update($user, (int)$p['id']),
-        default => Response::error('Method not allowed', 405),
-    }; exit;
-}
-if (($p = matchRoute('/farmers/{id}/contacts', $segments)) !== null) {
-    $user = Auth::requireAuth();
-    match($method) {
-        'GET'  => $farmerCtrl->contacts($user, (int)$p['id']),
-        'POST' => $farmerCtrl->addContact($user, (int)$p['id']),
-        default => Response::error('Method not allowed', 405),
-    }; exit;
-}
-if (($p = matchRoute('/farmers/{id}/contacts/{contact_id}', $segments)) !== null) {
-    $user = Auth::requireAuth();
-    if ($method === 'DELETE') $farmerCtrl->deleteContact($user, (int)$p['id'], (int)$p['contact_id']);
-    else Response::error('Method not allowed', 405);
-    exit;
-}
+        // 4. Verify the targeted method exists inside the controller instance
+        if ($actionName && method_exists($controller, $actionName)) {
+            
+            // --- AUTHENTICATION INTERCEPT MIDDLEWARE LAYER ---
+            // Public open routes that do not require JWT authorization tokens
+            $publicRoutes = [
+                'auth/login',
+                'auth/register'
+            ];
+            $currentRouteCheck = strtolower("$routeName/" . (!empty($parts[1]) ? $parts[1] : ''));
 
-// ─── Category routes ──────────────────────────────────────────────────────────
+            if (in_array($currentRouteCheck, $publicRoutes)) {
+                // Execute open route without authentication mapping
+                $controller->$actionName();
+            } else {
+                // Enforce token extraction and pass user claims down into controller
+                $authUser = Auth::requireAuth();
+                
+                // Route execution matching method signatures (with or without id parameters)
+                if ($idParam !== null) {
+                    if ($actionName === 'weights') {
+                        $controller->$actionName($idParam);
+                    } elseif ($actionName === 'deleteWeight') {
+                        // Capture the weight_id from $parts[3] (e.g., /livestock/12/weights/5)
+                        $weightId = !empty($parts[3]) ? (int)$parts[3] : 0;
+                        $controller->$actionName($authUser, $idParam, $weightId);
+                    } else {
+                        $controller->$actionName($authUser, $idParam);
+                    }
+                } else {
+                    $controller->$actionName($authUser);
+                }
+            }
+            
+        } else {
+            throw new Exception("Action '$actionName' not found in $controllerName", 404);
+        }
+    } else {
+        throw new Exception("Route not found: " . $route, 404);
+    }
 
-if (matchRoute('/categories', $segments) !== null) {
-    match($method) {
-        'GET'  => $categoryCtrl->index(),
-        'POST' => $categoryCtrl->store(Auth::requireAuth()),
-        default => Response::error('Method not allowed', 405),
-    }; exit;
+} catch (Exception $e) {
+    $code = $e->getCode() ?: 500;
+    // Prevent code 0 or invalid strings from breaking response layouts
+    if (!is_int($code) || $code < 100 || $code > 599) { $code = 500; }
+    http_response_code($code);
+    echo json_encode([
+        "status" => "error",
+        "message" => $e->getMessage()
+    ]);
 }
-if (($p = matchRoute('/categories/{id}', $segments)) !== null) {
-    match($method) {
-        'GET'    => $categoryCtrl->show((int)$p['id']),
-        'PUT'    => $categoryCtrl->update(Auth::requireAuth(), (int)$p['id']),
-        'DELETE' => $categoryCtrl->delete(Auth::requireAuth(), (int)$p['id']),
-        default  => Response::error('Method not allowed', 405),
-    }; exit;
-}
-
-// ─── Breed routes ─────────────────────────────────────────────────────────────
-
-if (matchRoute('/breeds', $segments) !== null) {
-    match($method) {
-        'GET'  => $breedCtrl->index(),
-        'POST' => $breedCtrl->store(Auth::requireAuth()),
-        default => Response::error('Method not allowed', 405),
-    }; exit;
-}
-if (($p = matchRoute('/breeds/{id}', $segments)) !== null) {
-    match($method) {
-        'GET'    => $breedCtrl->show((int)$p['id']),
-        'PUT'    => $breedCtrl->update(Auth::requireAuth(), (int)$p['id']),
-        'DELETE' => $breedCtrl->delete(Auth::requireAuth(), (int)$p['id']),
-        default  => Response::error('Method not allowed', 405),
-    }; exit;
-}
-
-// ─── Location routes ──────────────────────────────────────────────────────────
-
-if (matchRoute('/locations', $segments) !== null) {
-    $user = Auth::requireAuth();
-    match($method) {
-        'GET'  => $locationCtrl->index($user),
-        'POST' => $locationCtrl->store($user),
-        default => Response::error('Method not allowed', 405),
-    }; exit;
-}
-if (($p = matchRoute('/locations/{id}', $segments)) !== null) {
-    match($method) {
-        'GET'    => $locationCtrl->show((int)$p['id']),
-        'PUT'    => $locationCtrl->update(Auth::requireAuth(), (int)$p['id']),
-        'DELETE' => $locationCtrl->delete(Auth::requireAuth(), (int)$p['id']),
-        default  => Response::error('Method not allowed', 405),
-    }; exit;
-}
-
-// ─── Livestock routes ─────────────────────────────────────────────────────────
-
-if (matchRoute('/livestock', $segments) !== null) {
-    $user = Auth::requireAuth();
-    match($method) {
-        'GET'  => $livestockCtrl->index($user),
-        'POST' => $livestockCtrl->store($user),
-        default => Response::error('Method not allowed', 405),
-    }; exit;
-}
-if (($p = matchRoute('/livestock/{id}', $segments)) !== null) {
-    match($method) {
-        'GET'    => $livestockCtrl->show((int)$p['id']),
-        'PUT'    => $livestockCtrl->update(Auth::requireAuth(), (int)$p['id']),
-        'DELETE' => $livestockCtrl->delete(Auth::requireAuth(), (int)$p['id']),
-        default  => Response::error('Method not allowed', 405),
-    }; exit;
-}
-if (($p = matchRoute('/livestock/{id}/weights', $segments)) !== null) {
-    match($method) {
-        'GET'  => $livestockCtrl->weights((int)$p['id']),
-        'POST' => $livestockCtrl->addWeight(Auth::requireAuth(), (int)$p['id']),
-        default => Response::error('Method not allowed', 405),
-    }; exit;
-}
-if (($p = matchRoute('/livestock/{id}/weights/{weight_id}', $segments)) !== null) {
-    if ($method === 'DELETE') $livestockCtrl->deleteWeight(Auth::requireAuth(), (int)$p['id'], (int)$p['weight_id']);
-    else Response::error('Method not allowed', 405);
-    exit;
-}
-
-// ─── Order routes ─────────────────────────────────────────────────────────────
-
-if (matchRoute('/orders', $segments) !== null) {
-    $user = Auth::requireAuth();
-    match($method) {
-        'GET'  => $orderCtrl->index($user),
-        'POST' => $orderCtrl->store($user),
-        default => Response::error('Method not allowed', 405),
-    }; exit;
-}
-if (($p = matchRoute('/orders/{id}', $segments)) !== null) {
-    $user = Auth::requireAuth();
-    match($method) {
-        'GET'    => $orderCtrl->show($user, (int)$p['id']),
-        'DELETE' => $orderCtrl->delete($user, (int)$p['id']),
-        default  => Response::error('Method not allowed', 405),
-    }; exit;
-}
-if (($p = matchRoute('/orders/{id}/status', $segments)) !== null) {
-    if ($method === 'PATCH') $orderCtrl->updateStatus(Auth::requireAuth(), (int)$p['id']);
-    else Response::error('Method not allowed', 405);
-    exit;
-}
-
-// ─── Transaction routes ───────────────────────────────────────────────────────
-
-if (matchRoute('/transactions', $segments) !== null) {
-    $user = Auth::requireAuth();
-    match($method) {
-        'GET'  => $transactionCtrl->index($user),
-        'POST' => $transactionCtrl->store($user),
-        default => Response::error('Method not allowed', 405),
-    }; exit;
-}
-if (($p = matchRoute('/transactions/{id}', $segments)) !== null) {
-    $user = Auth::requireAuth();
-    match($method) {
-        'GET'    => $transactionCtrl->show($user, (int)$p['id']),
-        'PUT'    => $transactionCtrl->update($user, (int)$p['id']),
-        'DELETE' => $transactionCtrl->delete($user, (int)$p['id']),
-        default  => Response::error('Method not allowed', 405),
-    }; exit;
-}
-
-// ─── Fallback ─────────────────────────────────────────────────────────────────
-Response::notFound('Endpoint not found');

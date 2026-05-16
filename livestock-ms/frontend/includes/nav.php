@@ -11,7 +11,7 @@ $navRole = $navRole ?? 'buyer';
   <button class="hamburger" id="hamburger" title="Toggle menu">☰</button>
   <div class="topbar-logo">
     <span>🐄</span>
-    <span>LivestoChub</span>
+    <span>LivestockHub</span>
   </div>
   <div class="topbar-spacer"></div>
   <div class="topbar-user">

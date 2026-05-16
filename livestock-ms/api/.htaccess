@@ -1,11 +1,7 @@
-Options -Indexes
-
 RewriteEngine On
-RewriteBase /api/
+RewriteBase /livestockhub/livestock-ms/api/
 
-# Allow direct access to existing files/directories
+# Redirect everything that isn't a real file to index.php
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-
-# Route everything else to index.php
 RewriteRule ^(.*)$ index.php [QSA,L]

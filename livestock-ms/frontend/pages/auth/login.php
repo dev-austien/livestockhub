@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login — LivestoChub</title>
+  <title>Login — LivestockHub</title>
   <link rel="stylesheet" href="../../css/main.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
   <div class="auth-box">
     <div class="auth-logo">
       <div class="logo-icon">🐄</div>
-      <h1>LivestoChub</h1>
+      <h1>LivestockHub</h1>
       <p>Livestock Management System</p>
     </div>
 
