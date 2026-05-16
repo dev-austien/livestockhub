@@ -49,32 +49,151 @@ $method = $_SERVER['REQUEST_METHOD'];
 // ---------------------------------------------------
 
 /**
- * Dynamic Routing Logic
+ * Dynamic Routing Logic with REST Method & JWT Authentication Mapping
  */
 try {
-    // Split the route into parts (e.g., "livestock/view" becomes ["livestock", "view"])
+    // Split the route into parts (e.g., "locations/12" becomes ["locations", "12"])
     $parts = explode('/', $route);
-    $controllerName = !empty($parts[0]) ? ucfirst($parts[0]) . 'Controller' : null;
-    $actionName = !empty($parts[1]) ? $parts[1] : 'index';
+    
+    // --- PLURAL-TO-SINGULAR ALIAS MAPPER ---
+    $routeName = !empty($parts[0]) ? strtolower($parts[0]) : '';
+    
+    $routeAliases = [
+        'users'        => 'User',
+        'categories'   => 'Category',
+        'locations'    => 'Location',
+        'farmers'      => 'Farmer',
+        'breeds'       => 'Breed',
+        'transactions' => 'Transaction',
+        'orders'       => 'Order',
+        'livestock'    => 'Livestock'
+    ];
+
+    if (array_key_exists($routeName, $routeAliases)) {
+        $classNamePrefix = $routeAliases[$routeName];
+    } else {
+        $classNamePrefix = ucfirst($routeName);
+    }
+    // ----------------------------------------
+
+    $controllerName = !empty($classNamePrefix) ? $classNamePrefix . 'Controller' : null;
+    $method = $_SERVER['REQUEST_METHOD'];
 
     // 1. Check if the Controller class actually exists
     if ($controllerName && class_exists($controllerName)) {
         $controller = new $controllerName();
 
-        // 2. Check if the specific function (action) exists in that controller
-        if (method_exists($controller, $actionName)) {
-            // Call the function (e.g., AuthController->register())
-            $controller->$actionName();
+        // 2. Determine Action Name & ID Parameter based on REST design rules
+        $actionName = null;
+        $idParam = null;
+
+        // Check if the second URL segment is a numeric identifier (e.g., /locations/12)
+        if (!empty($parts[1]) && is_numeric($parts[1])) {
+            $idParam = (int)$parts[1];
+        }
+
+        // Map HTTP Methods directly to clean Controller methods
+        if ($method === 'GET') {
+            if ($idParam !== null) {
+                // Special check for livestock sub-actions (e.g., GET /livestock/12/weights -> weights)
+                $subAction = !empty($parts[2]) ? $parts[2] : '';
+                if ($subAction === 'weights') {
+                    $actionName = 'weights';
+                } else {
+                    $actionName = 'show';
+                }
+            } else {
+                $actionName = 'index';
+            }
+        } elseif ($method === 'POST') {
+            if ($idParam !== null) {
+                // Special check for livestock sub-actions (e.g., POST /livestock/12/weights -> addWeight)
+                $subAction = !empty($parts[2]) ? $parts[2] : '';
+                if ($subAction === 'weights') {
+                    $actionName = 'addWeight';
+                } else {
+                    $actionName = !empty($subAction) ? $subAction : 'store';
+                }
+            } else {
+                // e.g., /auth/register -> register, /auth/login -> login
+                $actionName = (!empty($parts[1])) ? $parts[1] : 'store';
+            }
+        } elseif ($method === 'PUT' || $method === 'PATCH') {
+            if ($idParam !== null) {
+                // Special check for order/livestock sub-actions (e.g., /orders/12/status -> updateStatus)
+                $subAction = !empty($parts[2]) ? $parts[2] : '';
+                if ($subAction === 'status') {
+                    $actionName = 'updateStatus';
+                } else {
+                    $actionName = !empty($subAction) ? $subAction : 'update';
+                }
+            } else {
+                $actionName = (!empty($parts[1])) ? $parts[1] : 'update';
+            }
+        } elseif ($method === 'DELETE') {
+            if ($idParam !== null) {
+                // Special check for livestock sub-actions (e.g., DELETE /livestock/12/weights/5 -> deleteWeight)
+                $subAction = !empty($parts[2]) ? $parts[2] : '';
+                if ($subAction === 'weights') {
+                    $actionName = 'deleteWeight';
+                } else {
+                    $actionName = 'delete';
+                }
+            } else {
+                $actionName = 'delete';
+            }
+        }
+
+        // 3. Fallback to secondary URL segment if no structural method matches yet
+        if (!$actionName && !empty($parts[1])) {
+            $actionName = $parts[1];
+        }
+
+        // 4. Verify the targeted method exists inside the controller instance
+        if ($actionName && method_exists($controller, $actionName)) {
+            
+            // --- AUTHENTICATION INTERCEPT MIDDLEWARE LAYER ---
+            // Public open routes that do not require JWT authorization tokens
+            $publicRoutes = [
+                'auth/login',
+                'auth/register'
+            ];
+            $currentRouteCheck = strtolower("$routeName/" . (!empty($parts[1]) ? $parts[1] : ''));
+
+            if (in_array($currentRouteCheck, $publicRoutes)) {
+                // Execute open route without authentication mapping
+                $controller->$actionName();
+            } else {
+                // Enforce token extraction and pass user claims down into controller
+                $authUser = Auth::requireAuth();
+                
+                // Route execution matching method signatures (with or without id parameters)
+                if ($idParam !== null) {
+                    if ($actionName === 'weights') {
+                        $controller->$actionName($idParam);
+                    } elseif ($actionName === 'deleteWeight') {
+                        // Capture the weight_id from $parts[3] (e.g., /livestock/12/weights/5)
+                        $weightId = !empty($parts[3]) ? (int)$parts[3] : 0;
+                        $controller->$actionName($authUser, $idParam, $weightId);
+                    } else {
+                        $controller->$actionName($authUser, $idParam);
+                    }
+                } else {
+                    $controller->$actionName($authUser);
+                }
+            }
+            
         } else {
             throw new Exception("Action '$actionName' not found in $controllerName", 404);
         }
     } else {
-        // If it's not a dynamic match, fallback to your manual routes or 404
         throw new Exception("Route not found: " . $route, 404);
     }
 
 } catch (Exception $e) {
     $code = $e->getCode() ?: 500;
+    // Prevent code 0 or invalid strings from breaking response layouts
+    if (!is_int($code) || $code < 100 || $code > 599) { $code = 500; }
     http_response_code($code);
     echo json_encode([
         "status" => "error",
