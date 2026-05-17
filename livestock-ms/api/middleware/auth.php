@@ -13,7 +13,7 @@ class Auth {
         if (!$token) Response::unauthorized('No token provided');
 
         $payload = JWT::decode($token);
-        if (!$payload) Response::unauthorized('Invalid or expired token');
+        if (!$payload) Response::unauthorized('Login session expired. Please log in again.');
 
         self::$currentUser = $payload;
         return $payload;
