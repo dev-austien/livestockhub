@@ -100,6 +100,15 @@ class LivestockController {
             if (empty($body[$f])) Response::error("Field '$f' is required");
         }
 
+        // --- UNIQUE TAG CHECK (STORE) ---
+        $tagNumber = trim($body['tag_number']);
+        $checkStmt = $this->db->prepare("SELECT livestock_id FROM livestock WHERE tag_number = ? LIMIT 1");
+        $checkStmt->execute([$tagNumber]);
+        if ($checkStmt->fetch()) {
+            Response::error("This tag number is already assigned to an active livestock record.", 400);
+        }
+        // --------------------------------
+
         $farmerId = $this->resolveFarmerId($authUser, $body);
         $imagePath = $this->handleImageUpload();
 
@@ -141,6 +150,18 @@ class LivestockController {
     public function update(array $authUser, int $id): void {
         $this->ownerOrAdmin($authUser, $id);
         $body = $this->getBody();
+
+        // --- UNIQUE TAG CHECK (UPDATE) ---
+        if (isset($body['tag_number'])) {
+            $tagNumber = trim($body['tag_number']);
+            // Make sure no OTHER livestock record is already using this tag
+            $checkStmt = $this->db->prepare("SELECT livestock_id FROM livestock WHERE tag_number = ? AND livestock_id != ? LIMIT 1");
+            $checkStmt->execute([$tagNumber, $id]);
+            if ($checkStmt->fetch()) {
+                Response::error("Cannot update. This tag number is already in use by another animal.", 400);
+            }
+        }
+        // ----------------------------------
 
         $cols = ['tag_number','location_id','category_id','breed_id','gender',
                  'health_status','date_of_birth','sale_status','price','description','current_weight'];
