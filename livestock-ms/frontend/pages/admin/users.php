@@ -60,8 +60,10 @@
       </div>
       <div class="form-group"><label class="form-label">Status</label>
         <select class="form-control" id="editStatus">
+          <option value="Pending">Pending</option>
           <option value="Active">Active</option>
           <option value="Suspended">Suspended</option>
+          <option value="Banned">Banned</option>
           <option value="Inactive">Inactive</option>
         </select>
       </div>
