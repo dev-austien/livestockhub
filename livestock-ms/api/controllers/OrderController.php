@@ -127,7 +127,22 @@ class OrderController {
             if ((int)$order['farmer_user_id'] !== $authUser['sub']) Response::forbidden();
         }
 
+        // 1. Update the status of the CURRENT order being processed
         $this->db->prepare("UPDATE orders SET status = ? WHERE order_id = ?")->execute([$status, $id]);
+
+        // ─── NEW AUTO-CANCEL LOGIC FOR OTHER BUYERS ───
+        // If the farmer accepts this order (Confirmed or Completed), wipe out rival buyers
+        if (in_array($status, ['Confirmed', 'Completed'])) {
+            $cancelStmt = $this->db->prepare(
+                "UPDATE orders 
+                 SET status = 'Cancelled' 
+                 WHERE livestock_id = ? 
+                   AND order_id != ? 
+                   AND status = 'Pending'"
+            );
+            $cancelStmt->execute([$order['livestock_id'], $id]);
+        }
+        // ───────────────────────────────────────────────
 
         // Update livestock sale_status accordingly
         $newSaleStatus = match($status) {
