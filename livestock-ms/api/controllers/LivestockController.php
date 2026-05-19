@@ -24,6 +24,13 @@ class LivestockController {
             $params[] = $authUser['sub'];
         }
 
+        // --- INVENTORY FILTER (STEP 1) ---
+        // Hide sold livestock from marketplace/listings for non-admins
+        if ($authUser['role'] !== 'Admin') {
+            $where[] = "l.sale_status = 'Available'";
+        }
+        // ---------------------------------
+
         // Optional filters
         $filters = [
             'farmer_id'   => 'l.farmer_id',
@@ -105,7 +112,7 @@ class LivestockController {
         $checkStmt = $this->db->prepare("SELECT livestock_id FROM livestock WHERE tag_number = ? LIMIT 1");
         $checkStmt->execute([$tagNumber]);
         if ($checkStmt->fetch()) {
-            Response::error("This tag number is already assigned to an active livestock record.", 400);
+            Response::error("This tag number is unavailable.", 400);
         }
         // --------------------------------
 
