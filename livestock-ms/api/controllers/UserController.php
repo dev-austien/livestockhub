@@ -74,7 +74,7 @@ class UserController {
                 $fields[] = "user_role = ?";
                 $params[] = $body['user_role'];
             }
-            if (!empty($body['user_status']) && in_array($body['user_status'], ['Active', 'Suspended', 'Inactive'])) {
+            if (!empty($body['user_status']) && in_array($body['user_status'], ['Pending', 'Active', 'Suspended', 'Inactive', 'Banned'])) {
                 $fields[] = "user_status = ?";
                 $params[] = $body['user_status'];
             }
@@ -115,7 +115,7 @@ class UserController {
     public function updateStatus(array $authUser, int $id): void {
         if ($authUser['role'] !== 'Admin') Response::forbidden();
         $body = $this->getBody();
-        if (!in_array($body['status'] ?? '', ['Active', 'Suspended', 'Inactive'])) {
+        if (!in_array($body['status'] ?? '', ['Pending', 'Active', 'Suspended', 'Inactive', 'Banned'])) {
             Response::error('Invalid status value');
         }
         $this->db->prepare("UPDATE user SET user_status = ? WHERE user_id = ?")->execute([$body['status'], $id]);

@@ -34,6 +34,8 @@ $navRole = $navRole ?? 'buyer';
     <div class="sidebar-label">Main</div>
     <nav class="sidebar-nav">
       <a href="dashboard.php"><span class="nav-icon">📊</span> Dashboard</a>
+      <a href="reports.php"><span class="nav-icon">🚩</span> Reports</a>
+      <a href="account-pending.php"><span class="nav-icon">⏳</span> Account Pending</a>
       <a href="users.php"><span class="nav-icon">👥</span> Users</a>
       <a href="livestock.php"><span class="nav-icon">🐄</span> All Livestock</a>
     </nav>
@@ -63,6 +65,7 @@ $navRole = $navRole ?? 'buyer';
     <nav class="sidebar-nav">
       <a href="orderReceived.php"><span class="nav-icon">📦</span> Orders Received</a>
       <a href="transaction.php"><span class="nav-icon">💰</span> Transactions</a>
+      <a href="report.php"><span class="nav-icon">🚩</span> Report</a>
     </nav>
   </div>
 
@@ -80,6 +83,7 @@ $navRole = $navRole ?? 'buyer';
       <a href="myorders.php"><span class="nav-icon">📋</span> My Orders</a>
       <a href="paymenthistory.php"><span class="nav-icon">💳</span> Payment History</a>
       <a href="myprofile.php"><span class="nav-icon">👤</span> My Profile</a>
+      <a href="report.php"><span class="nav-icon">🚩</span> Report</a>
     </nav>
   </div>
   <?php endif; ?>

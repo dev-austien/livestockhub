@@ -87,7 +87,7 @@ function statusBadge(status) {
     Available: 'badge-green', Reserved: 'badge-amber', Sold: 'badge-gray',
     Pending: 'badge-amber', Confirmed: 'badge-blue', Completed: 'badge-green', Cancelled: 'badge-red',
     Paid: 'badge-green', Failed: 'badge-red', Refunded: 'badge-gray',
-    Active: 'badge-green', Suspended: 'badge-red', Inactive: 'badge-gray',
+    Active: 'badge-green', Pending: 'badge-amber', Suspended: 'badge-red', Banned: 'badge-red', Inactive: 'badge-gray',
     Male: 'badge-blue', Female: 'badge-amber',
   };
   return `<span class="badge ${map[status]||'badge-gray'}">${status||'—'}</span>`;

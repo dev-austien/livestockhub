@@ -21,6 +21,9 @@ require_once __DIR__ . '/controllers/LocationController.php';
 require_once __DIR__ . '/controllers/LivestockController.php';
 require_once __DIR__ . '/controllers/OrderController.php';
 require_once __DIR__ . '/controllers/TransactionController.php';
+require_once __DIR__ . '/controllers/ReportController.php';
+require_once __DIR__ . '/controllers/PendingAccountController.php';
+require_once __DIR__ . '/controllers/BanController.php';
 
 // 3. CORS Headers - This prevents "Network Error" in the browser
 header('Content-Type: application/json');
@@ -59,14 +62,17 @@ try {
     $routeName = !empty($parts[0]) ? strtolower($parts[0]) : '';
     
     $routeAliases = [
-        'users'        => 'User',
-        'categories'   => 'Category',
-        'locations'    => 'Location',
-        'farmers'      => 'Farmer',
-        'breeds'       => 'Breed',
-        'transactions' => 'Transaction',
-        'orders'       => 'Order',
-        'livestock'    => 'Livestock'
+        'users'             => 'User',
+        'categories'        => 'Category',
+        'locations'         => 'Location',
+        'farmers'           => 'Farmer',
+        'breeds'            => 'Breed',
+        'transactions'      => 'Transaction',
+        'orders'            => 'Order',
+        'livestock'         => 'Livestock',
+        'reports'           => 'Report',
+        'pending-accounts'  => 'PendingAccount',
+        'bans'              => 'Ban',
     ];
 
     if (array_key_exists($routeName, $routeAliases)) {
@@ -103,7 +109,7 @@ try {
                     $actionName = 'show';
                 }
             } else {
-                $actionName = 'index';
+                $actionName = (!empty($parts[1]) && !is_numeric($parts[1])) ? $parts[1] : 'index';
             }
         } elseif ($method === 'POST') {
             if ($idParam !== null) {
